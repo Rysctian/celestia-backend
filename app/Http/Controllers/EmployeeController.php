@@ -14,14 +14,12 @@ class EmployeeController extends Controller
     public function index()
     { 
        $employees = $this->employeeService->findAll();
-      return response()->json(['message' => 'success','data' => $employees,]);
+       return response()->json(['message' => 'success','data' => $employees,]);
     }
 
-    public function find(Request $request)
+    public function find(Request $request, string $employee_id)
     {
-      $empid = $request->id; 
-      $employee = $this->employeeService->findById($empid);
-
+      $employee = $this->employeeService->findById($employee_id);
       if (!$employee) return response()->json(['message' => 'Employee not found.'], 404);
       
       return response()->json(['message' => 'success','data' => $employee]);
@@ -34,9 +32,9 @@ class EmployeeController extends Controller
       return response()->json(['message' => 'Employee created successfully.','data' => $employee], 201);
     }
 
-    public function update(EmployeeRequest $request, string $employeeId)
+    public function update(EmployeeRequest $request, string $employee_id)
     {
-      $updated_employee = $this->employeeService->updateUserAndEmployee($request->validated(), $employeeId);
+      $updated_employee = $this->employeeService->updateUserAndEmployee($request->validated(), $employee_id);
 
       if(!$updated_employee) return response()->json(['message' => 'Employee Update Failed', 401]);
 

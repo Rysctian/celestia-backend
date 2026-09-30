@@ -13,7 +13,7 @@ if (app()->environment('local')) {
 
 Route::middleware(['auth:sanctum'])->group(function(){
   Route::get("/employees",        [EmployeeController::class, "index"]);
-  Route::get("/employees:{employeeid}",   [EmployeeController::class, "find"]);
+  Route::get("/employees/{employee_id}",   [EmployeeController::class, "find"]);
   Route::post("/employees",       [EmployeeController::class, "store"]);
-  Route::put('/employees/{employeeId}', [EmployeeController::class, 'update']);
+  Route::put('/employees/{employee_id}', [EmployeeController::class, 'update']);
 });

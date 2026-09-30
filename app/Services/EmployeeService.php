@@ -7,24 +7,23 @@ use App\Models\User;
 
 class EmployeeService
 {
-    /**
-     * Create a new class instance.
-     */
-    public function __construct()
+ 
+    public function __construct(){}
+    public function findAll()
     {
-        //
-    }
-    public function findAll(){
        return Employee::query()->orderBy('employee_id')->get();
     }
 
-    public function findById(string $empid){
-      return Employee::where('employee_id', $empid)->firstOrFail();
+    public function findById(string $empid)
+    {
+      return Employee::where('employee_id', $empid)->first();
     }
 
-    public function createEmployee(array $data){
+    public function createEmployee(array $data)
+    {
       $data['employee_id']= $this->generateEmployeId();
       $employee= Employee::create($data);
+      
       if($employee) return $this->createUser($employee);
     }
 
