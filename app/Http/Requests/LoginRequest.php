@@ -26,26 +26,22 @@ class LoginRequest extends FormRequest
     }
 
     public function authenticate(): void
-  {
-      $this->ensureIsNotRateLimited();
+    {
+        $this->ensureIsNotRateLimited();
 
-      if (! Auth::attempt(
-          $this->only('email', 'password'),
-          $this->boolean('remember')
-      )) {
-          FacadesRateLimiter::hit($this->throttleKey());
+        if (! Auth::attempt($this->only('email', 'password'),$this->boolean('remember'))) {
+            FacadesRateLimiter::hit($this->throttleKey());
+            throw ValidationException::withMessages([
+                'email' => __('auth.failed'),
+            ]);
+        }
 
-          throw ValidationException::withMessages([
-              'email' => __('auth.failed'),
-          ]);
-      }
-
-      FacadesRateLimiter::clear($this->throttleKey());
-  }
+        FacadesRateLimiter::clear($this->throttleKey());
+    }
 
   public function ensureIsNotRateLimited(): void
     {
-        if (! FacadesRateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
+        if (!FacadesRateLimiter::tooManyAttempts($this->throttleKey(), 5)) {
             return;
         }
 

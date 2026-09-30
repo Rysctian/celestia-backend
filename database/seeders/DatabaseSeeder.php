@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\EmployeeInfo;
+use App\Models\Employee;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -16,13 +16,19 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-        // EmployeeInfo::factory(10)->create();
+        $employees = Employee::factory(10)->create();
 
-        User::factory()->create([
-            'name' => 'Christian',
-            'email' => 'admin@example.com',
-            'password' => 'a',
-        ]);
+        foreach ($employees as $employee) {
+            User::factory()
+                ->forEmployee($employee)
+                ->create();
+        }
+        // EmployeeInfo::factory(10)->create();
+       User::factory()->create([
+          'name' => 'Christian',
+          'email' => 'admin@example.com',
+          'employee_id' => $employees->first()->employee_id,
+          'password' => 'a',
+      ]);
     }
 }

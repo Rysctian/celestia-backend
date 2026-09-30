@@ -2,23 +2,33 @@
 
 namespace Database\Factories;
 
-use App\Models\EmployeeInfo;
+use App\Models\Employee;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
- * @extends Factory<EmployeeInfo>
+ * @extends Factory<Employee>
  */
-class EmployeeInfoFactory extends Factory
+class EmployeeFactory extends Factory
 {
+    protected static int $employeeSequence = 0;
+
     /**
      * Define the model's default state.
-     *
-     * @return array<string, mixed>
      */
     public function definition(): array
     {
+        $year = now()->year;
+
+        self::$employeeSequence++;
+
         return [
-            'employee_no' => 'EMP-' . fake()->unique()->numerify('#####'),
+            'employee_id' => sprintf(
+                'EMP-%d%04d',
+                $year,
+                self::$employeeSequence
+            ),
+
+            'type' => 'employee',
 
             'first_name' => fake()->firstName(),
             'middle_name' => fake()->optional()->firstName(),
@@ -49,9 +59,7 @@ class EmployeeInfoFactory extends Factory
             ]),
 
             'personal_email' => fake()->unique()->safeEmail(),
-
             'mobile_no' => '09' . fake()->numerify('#########'),
-
             'telephone_no' => fake()->optional()->phoneNumber(),
         ];
     }
