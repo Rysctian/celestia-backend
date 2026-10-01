@@ -22,23 +22,12 @@ class EmployeeFactory extends Factory
         self::$employeeSequence++;
 
         return [
-            'employee_id' => sprintf(
-                'EMP-%d%04d',
-                $year,
-                self::$employeeSequence
-            ),
-
+            'employee_id' => sprintf('EMP-%d%04d',$year,self::$employeeSequence),
             'type' => 'employee',
-
             'first_name' => fake()->firstName(),
             'middle_name' => fake()->optional()->firstName(),
             'last_name' => fake()->lastName(),
-            'name_extension' => fake()->optional()->randomElement([
-                'Jr.',
-                'Sr.',
-                'II',
-                'III',
-            ]),
+            'name_extension' => fake()->optional()->randomElement(['Jr.','Sr.','II','III',]),
 
             'birth_date' => fake()
                 ->dateTimeBetween('-60 years', '-20 years')

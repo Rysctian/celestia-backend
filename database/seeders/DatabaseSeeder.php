@@ -23,12 +23,18 @@ class DatabaseSeeder extends Seeder
                 ->forEmployee($employee)
                 ->create();
         }
-        // EmployeeInfo::factory(10)->create();
+        $employees->first()->update(['type' => 'admin']);
+
        User::factory()->create([
           'name' => 'Christian',
           'email' => 'admin@example.com',
           'employee_id' => $employees->first()->employee_id,
           'password' => 'a',
       ]);
+
+        $this->call([
+            ScheduleSeeder::class,
+            EmployeeScheduleSeeder::class,
+        ]);
     }
 }

@@ -2,25 +2,22 @@
 
 namespace App\Http\Controllers\Auth;
 
-use App\Models\User;
 use App\Http\Requests\LoginRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
+use Laravel\Sanctum\PersonalAccessToken;
 
-
-class AuthenticationController  extends Controller
+class AuthenticationController extends Controller
 {
     /**
      * Login
      *
      * @unauthenticated
      */
-    public function store(LoginRequest $request)
+    public function store(LoginRequest $request): JsonResponse
     {
         $request->authenticate();
         $request->session()->regenerate();
@@ -28,35 +25,38 @@ class AuthenticationController  extends Controller
         return response()->json(['message' => 'Authenticated successfully.']);
     }
 
+
     public function destroy(Request $request): Response
     {
-        Auth::guard('web')->logout();
+        $token = $request->user()->currentAccessToken();
 
-        $request->session()->invalidate();
-
-        $request->session()->regenerateToken();
+        if ($token instanceof PersonalAccessToken) {
+            $token->delete();
+        } elseif ($request->hasSession()) {
+            Auth::guard('web')->logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+        }
 
         return response()->noContent();
     }
-  /**
-   * Get a dev token (local only)
-   *
-   * @unauthenticated
-   */
+
+    /**
+     * Get a dev token (local only)
+     *
+     * @unauthenticated
+     */
     public function token(LoginRequest $request): JsonResponse
     {
         abort_unless(app()->environment('local'), 404);
 
-        $user = User::where('email', $request->input('email'))->first();
-
-        if (! $user || ! Hash::check($request->input('password'), $user->password)) {
-            throw ValidationException::withMessages([
-                'email' => __('auth.failed'),
-            ]);
-        }
+        $user = $request->authenticate(withSession: false);
+        $expiresAt = now()->addHour();
 
         return response()->json([
-            'token' => $user->createToken('scramble')->plainTextToken,
-        ]);
+            'token' => $user->createToken('scramble', ['*'], $expiresAt)->plainTextToken,
+            'expires_at' => $expiresAt->toIso8601String(),
+        ])->header('Cache-Control', 'no-store');
     }
 }
+  
