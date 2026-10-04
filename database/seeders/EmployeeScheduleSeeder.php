@@ -12,18 +12,16 @@ class EmployeeScheduleSeeder extends Seeder
 {
     public function run(): void
     {
-        $schedules = Schedule::whereIn('name', ['Office - Mon to Fri', 'Night - Mon to Fri'])
-            ->where('is_active', true)->orderBy('id')->get();
+        $schedule = Schedule::where('name', 'Office - Mon to Fri')->where('is_active', true)->first();
         $admin = User::whereHas('employee', fn ($query) => $query->where('type', 'admin'))->firstOrFail();
         $service = app(EmployeeScheduleService::class);
 
         // Use employees from this database, never fixed IDs from a previous seed.
-        Employee::whereDoesntHave('schedules')->orderBy('id')->get()->each(function ($employee, $index) use ($schedules, $admin, $service) {
-            if ($schedules->isEmpty()) {
+        Employee::whereDoesntHave('schedules')->orderBy('id')->get()->each(function ($employee) use ($schedule, $admin, $service) {
+            if (! $schedule) {
                 return;
             }
 
-            $schedule = $schedules[$index % $schedules->count()];
             $service->assignSchedule([
                 'employee_ids' => [$employee->employee_id],
                 'schedule_id' => $schedule->id,

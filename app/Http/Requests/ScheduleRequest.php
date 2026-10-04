@@ -29,12 +29,11 @@ class ScheduleRequest extends FormRequest
             'timezone' => ['required', 'string', 'timezone', 'max:50'],
             'is_active' => ['sometimes', 'boolean'],
             'details' => ['required', 'array', 'min:7'],
-            'details.*' => ['required', 'array:day_of_week,is_rest_day,start_time,end_time,ends_next_day'],
+            'details.*' => ['required', 'array:day_of_week,is_rest_day,start_time,end_time'],
             'details.*.day_of_week' => ['required', 'integer', 'between:1,7'],
             'details.*.is_rest_day' => ['required', 'boolean'],
             'details.*.start_time' => ['present', 'nullable', 'date_format:H:i'],
             'details.*.end_time' => ['present', 'nullable', 'date_format:H:i'],
-            'details.*.ends_next_day' => ['required', 'boolean'],
         ];
     }
 
@@ -67,8 +66,8 @@ class ScheduleRequest extends FormRequest
 
                 if ($detail['is_rest_day']) {
                     $restDays[$weekday] = true;
-                    if ($detail['start_time'] !== null || $detail['end_time'] !== null || $detail['ends_next_day']) {
-                        $validator->errors()->add("details.$index", 'Rest days must have null times and no overnight flag.');
+                    if ($detail['start_time'] !== null || $detail['end_time'] !== null) {
+                        $validator->errors()->add("details.$index", 'Rest days must have null times.');
                     }
 
                     continue;
@@ -83,14 +82,13 @@ class ScheduleRequest extends FormRequest
                 [$startHour, $startMinute] = explode(':', $detail['start_time']);
                 [$endHour, $endMinute] = explode(':', $detail['end_time']);
                 $start = $startHour * 60 + $startMinute;
-                $end = $endHour * 60 + $endMinute + ($detail['ends_next_day'] ? 1440 : 0);
-                $duration = $end - $start;
+                $end = $endHour * 60 + $endMinute;
 
-                if ($duration <= 0 || $duration >= 1440) {
-                    $validator->errors()->add("details.$index", 'Slot duration must be positive and under 24 hours.');
+                if ($end <= $start) {
+                    $validator->errors()->add("details.$index", 'End time must be after start time on the same day.');
                 }
 
-                $shifts[] = ['start' => ($weekday - 1) * 1440 + $start, 'end' => ($weekday - 1) * 1440 + $end];
+                $shifts[$weekday][] = ['start' => $start, 'end' => $end];
             }
 
             if (count($weekdays) !== 7) {
@@ -103,18 +101,12 @@ class ScheduleRequest extends FormRequest
                 }
             }
 
-            if ($shifts === []) {
-                return;
-            }
-
-            usort($shifts, fn ($a, $b) => $a['start'] <=> $b['start']);
-            foreach ($shifts as $index => $shift) {
-                $next = $shifts[($index + 1) % count($shifts)]['start'];
-                if ($index === count($shifts) - 1) {
-                    $next += 7 * 1440;
-                }
-                if ($shift['end'] > $next) {
-                    $validator->errors()->add('details', 'A slot overlaps another slot.');
+            foreach ($shifts as $dayShifts) {
+                usort($dayShifts, fn ($a, $b) => $a['start'] <=> $b['start']);
+                for ($index = 0; $index < count($dayShifts) - 1; $index++) {
+                    if ($dayShifts[$index]['end'] > $dayShifts[$index + 1]['start']) {
+                        $validator->errors()->add('details', 'A slot overlaps another slot.');
+                    }
                 }
             }
         }];

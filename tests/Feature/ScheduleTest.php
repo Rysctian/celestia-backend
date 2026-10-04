@@ -39,14 +39,14 @@ class ScheduleTest extends TestCase
             'details' => collect(range(1, 7))->flatMap(fn ($day) => $day >= 6
                 ? [[
                     'day_of_week' => $day, 'is_rest_day' => true,
-                    'start_time' => null, 'end_time' => null, 'ends_next_day' => false,
+                    'start_time' => null, 'end_time' => null,
                 ]]
                 : [[
                     'day_of_week' => $day, 'is_rest_day' => false,
-                    'start_time' => '08:00', 'end_time' => '12:00', 'ends_next_day' => false,
+                    'start_time' => '08:00', 'end_time' => '12:00',
                 ], [
                     'day_of_week' => $day, 'is_rest_day' => false,
-                    'start_time' => '13:00', 'end_time' => '17:00', 'ends_next_day' => false,
+                    'start_time' => '13:00', 'end_time' => '17:00',
                 ]])->all(),
         ];
     }
@@ -117,7 +117,7 @@ class ScheduleTest extends TestCase
         $template['details'][0]['end_time'] = '10:00';
         $template['details'][] = [
             'day_of_week' => 1, 'is_rest_day' => false,
-            'start_time' => '10:30', 'end_time' => '12:00', 'ends_next_day' => false,
+            'start_time' => '10:30', 'end_time' => '12:00',
         ];
 
         $id = $this->postJson('/api/schedules', $template)->assertCreated()
@@ -135,7 +135,7 @@ class ScheduleTest extends TestCase
         $data = $this->template();
         $data['details'][1]['start_time'] = '11:00';
         $cases[] = $data;
-        foreach ([['start_time' => null], ['end_time' => '07:00'], ['end_time' => '08:00'], ['end_time' => '08:00', 'ends_next_day' => true]] as $change) {
+        foreach ([['start_time' => null], ['end_time' => '07:00'], ['end_time' => '08:00']] as $change) {
             $data = $this->template();
             $data['details'][0] = [...$data['details'][0], ...$change];
             $cases[] = $data;
@@ -152,16 +152,19 @@ class ScheduleTest extends TestCase
         $this->assertDatabaseCount('schedules', 0);
     }
 
-    public function test_sunday_overnight_cannot_overlap_monday(): void
+    public function test_overnight_flag_is_not_accepted(): void
     {
         $this->login();
         $data = $this->template();
-        $data['details'][11] = [
-            'day_of_week' => 7, 'is_rest_day' => false,
-            'start_time' => '22:00', 'end_time' => '09:00',
-            'ends_next_day' => true,
-        ];
-        $this->postJson('/api/schedules', $data)->assertUnprocessable()->assertJsonValidationErrors('details');
+        $data['details'][0]['ends_next_day'] = true;
+        $this->postJson('/api/schedules', $data)->assertUnprocessable()->assertJsonValidationErrors('details.0');
+
+        unset($data['details'][0]['ends_next_day']);
+        $data['details'][0]['start_time'] = '22:00';
+        $data['details'][0]['end_time'] = '23:00';
+        $data['details'][1]['start_time'] = '23:00';
+        $data['details'][1]['end_time'] = '23:30';
+        $this->postJson('/api/schedules', $data)->assertCreated();
     }
 
     public function test_bulk_assignment_uses_current_actor_and_rejects_overlap_atomically(): void
@@ -220,38 +223,22 @@ class ScheduleTest extends TestCase
             ->assertOk()->assertJsonPath('data.0.status', 'working');
     }
 
-    public function test_resolution_distinguishes_unassigned_rest_and_overnight_work(): void
+    public function test_resolution_distinguishes_unassigned_rest_and_working_days(): void
     {
         $user = $this->login(false);
-        $night = Schedule::factory()->withWeek(true)->create();
+        $schedule = Schedule::factory()->withWeek()->create();
         EmployeeSchedule::factory()->create([
-            'employee_id' => $user->employee_id, 'schedule_id' => $night->id,
+            'employee_id' => $user->employee_id, 'schedule_id' => $schedule->id,
             'effective_from' => '2026-10-16', 'effective_to' => '2026-10-18',
         ]);
         $this->getJson("/api/employees/{$user->employee_id}/schedule?from=2026-10-15&to=2026-10-18")
             ->assertOk()->assertJsonCount(4, 'data')
             ->assertJsonPath('data.0.status', 'unassigned')
-            ->assertJsonPath('data.1.shifts.0.starts_at', '2026-10-16T22:00:00+08:00')
-            ->assertJsonPath('data.1.shifts.0.ends_at', '2026-10-17T07:00:00+08:00')
-            ->assertJsonPath('data.1.scheduled_minutes', 540)
+            ->assertJsonPath('data.1.shifts.0.starts_at', '2026-10-16T08:00:00+08:00')
+            ->assertJsonPath('data.1.shifts.0.ends_at', '2026-10-16T12:00:00+08:00')
+            ->assertJsonPath('data.1.scheduled_minutes', 480)
             ->assertJsonPath('data.2.status', 'rest_day')
             ->assertJsonCount(0, 'data.2.shifts');
-    }
-
-    public function test_shift_overlap_is_rejected_across_assignment_boundaries(): void
-    {
-        $this->login();
-        $night = Schedule::factory()->withWeek(true)->create();
-        $assignment = EmployeeSchedule::factory()->create([
-            'schedule_id' => $night->id, 'effective_from' => '2026-10-12', 'effective_to' => '2026-10-12',
-        ]);
-        $morning = Schedule::factory()->withWeek()->create();
-        $morning->details()->where('start_time', '08:00')->update(['start_time' => '06:00']);
-        $this->postJson('/api/employee-schedules', [
-            'employee_ids' => [$assignment->employee_id], 'schedule_id' => $morning->id,
-            'effective_from' => '2026-10-13',
-        ])->assertUnprocessable()->assertJsonValidationErrors('schedule_id');
-        $this->assertDatabaseCount('employee_schedules', 1);
     }
 
     public function test_employees_can_only_read_their_own_schedule_and_cannot_promote_themselves(): void
@@ -285,16 +272,16 @@ class ScheduleTest extends TestCase
     {
         $this->seed();
         $this->assertDatabaseCount('employees', 10);
-        $this->assertDatabaseCount('schedules', 2);
-        $this->assertDatabaseCount('schedule_details', 19);
+        $this->assertDatabaseCount('schedules', 1);
+        $this->assertDatabaseCount('schedule_details', 12);
         $this->assertDatabaseCount('employee_schedules', 10);
         $this->assertSame(0, Employee::whereDoesntHave('schedules')->count());
         $this->assertTrue(User::where('email', 'admin@example.com')->firstOrFail()->can('manage-schedules'));
 
         $employee = Employee::factory()->create();
         $this->seed([ScheduleSeeder::class, EmployeeScheduleSeeder::class]);
-        $this->assertDatabaseCount('schedules', 2);
-        $this->assertDatabaseCount('schedule_details', 19);
+        $this->assertDatabaseCount('schedules', 1);
+        $this->assertDatabaseCount('schedule_details', 12);
         $this->assertDatabaseCount('employee_schedules', 11);
         $this->assertDatabaseHas('employee_schedules', ['employee_id' => $employee->employee_id]);
     }

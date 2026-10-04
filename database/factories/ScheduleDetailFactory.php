@@ -17,7 +17,6 @@ class ScheduleDetailFactory extends Factory
             'is_rest_day' => false,
             'start_time' => '08:00',
             'end_time' => '12:00',
-            'ends_next_day' => false,
         ];
     }
 }

@@ -11,7 +11,6 @@ class ScheduleDetail extends Model
 
     protected $fillable = [
         'schedule_id', 'day_of_week', 'is_rest_day', 'start_time', 'end_time',
-        'ends_next_day',
     ];
 
     protected function casts(): array
@@ -19,7 +18,6 @@ class ScheduleDetail extends Model
         return [
             'day_of_week' => 'integer',
             'is_rest_day' => 'boolean',
-            'ends_next_day' => 'boolean',
             'unpaid_break_minutes' => 'integer',
         ];
     }

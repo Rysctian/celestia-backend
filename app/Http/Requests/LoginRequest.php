@@ -6,6 +6,7 @@ use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -30,23 +31,34 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        $guard = Auth::guard('web');
-        $credentials = $this->only('email', 'password');
-        $authenticated = $withSession
-            ? $guard->attempt($credentials, $this->boolean('remember'))
-            : $guard->validate($credentials);
+        $user = User::where('email', $this->input('email'))->first();
 
-        if (! $authenticated) {
+        if (! $user) {
             RateLimiter::hit($this->throttleKey(), 60);
 
             throw ValidationException::withMessages([
-                'email' => __('auth.failed'),
+                'email' => "Email doesn't exist!",
+            ]);
+        }
+
+        if (! Hash::check($this->input('password'), $user->password)) {
+            RateLimiter::hit($this->throttleKey(), 60);
+
+            throw ValidationException::withMessages([
+                'password' => 'The password you entered is incorrect.',
             ]);
         }
 
         RateLimiter::clear($this->throttleKey());
 
-        return $guard->getLastAttempted();
+        if ($withSession) {
+            Auth::guard('web')->login(
+                $user,
+                $this->boolean('remember')
+            );
+        }
+
+        return $user;
     }
 
     public function ensureIsNotRateLimited(): void

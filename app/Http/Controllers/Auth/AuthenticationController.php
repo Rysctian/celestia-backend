@@ -58,5 +58,18 @@ class AuthenticationController extends Controller
             'expires_at' => $expiresAt->toIso8601String(),
         ])->header('Cache-Control', 'no-store');
     }
+
+    public function me(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        return response()->json([
+            'data' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+            ],
+        ]);
+    }
 }
   

@@ -19,6 +19,7 @@ if (app()->environment('local')) {
 
 Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/logout', [AuthenticationController::class, 'destroy'])->name('logout');
+    Route::get('/me', [AuthenticationController::class, 'me'])->name('me');
 
     Route::get('/employees',               [EmployeeController::class, 'index']);
     Route::get('/employees/{employee_id}', [EmployeeController::class, 'find']);

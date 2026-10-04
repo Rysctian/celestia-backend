@@ -9,10 +9,8 @@ class ScheduleSeeder extends Seeder
 {
     public function run(): void
     {
-        foreach (['Office - Mon to Fri' => false, 'Night - Mon to Fri' => true] as $name => $night) {
-            if (! Schedule::where('name', $name)->exists()) {
-                Schedule::factory()->withWeek($night)->create(['name' => $name]);
-            }
+        if (! Schedule::where('name', 'Office - Mon to Fri')->exists()) {
+            Schedule::factory()->withWeek()->create(['name' => 'Office - Mon to Fri']);
         }
     }
 }

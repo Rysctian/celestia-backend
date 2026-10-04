@@ -14,8 +14,6 @@ class EmployeeScheduleController extends Controller
 
     public function index(Request $request, string $employee_id)
     {
-        abort_unless($request->user()->can('manage-schedules') || $request->user()->employee_id === $employee_id, 403);
-        Employee::where('employee_id', $employee_id)->firstOrFail();
         $assignments = $this->empSchedService->findAll($employee_id);
 
         return response()->json(['message' => 'success', 'data' => $assignments]);

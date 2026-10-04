@@ -14,20 +14,19 @@ class ScheduleFactory extends Factory
         return ['name' => fake()->words(3, true), 'timezone' => 'Asia/Manila', 'is_active' => true];
     }
 
-    public function withWeek(bool $night = false): static
+    public function withWeek(): static
     {
-        return $this->afterCreating(function (Schedule $schedule) use ($night) {
+        return $this->afterCreating(function (Schedule $schedule) {
             foreach (range(1, 7) as $weekday) {
                 $rest = $weekday >= 6;
                 ScheduleDetail::factory()->create([
                     'schedule_id' => $schedule->id,
                     'day_of_week' => $weekday,
                     'is_rest_day' => $rest,
-                    'start_time' => $rest ? null : ($night ? '22:00' : '08:00'),
-                    'end_time' => $rest ? null : ($night ? '07:00' : '12:00'),
-                    'ends_next_day' => ! $rest && $night,
+                    'start_time' => $rest ? null : '08:00',
+                    'end_time' => $rest ? null : '12:00',
                 ]);
-                if (! $rest && ! $night) {
+                if (! $rest) {
                     ScheduleDetail::factory()->create([
                         'schedule_id' => $schedule->id,
                         'day_of_week' => $weekday,
