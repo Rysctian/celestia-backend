@@ -24,8 +24,8 @@ class AppServiceProvider extends ServiceProvider
      */
   public function boot(): void
   {
-      Gate::define('manage-schedules', fn (User $user) => $user->employee()->where('type', 'admin')->exists());
-      Gate::define('manage-employees', fn (User $user) => $user->employee()->where('type', 'admin')->exists());
+      Gate::define('manage-schedules', fn (User $user) => $user->hasMenuAccess('schedule_list', 'update'));
+      Gate::define('manage-employees', fn (User $user) => $user->hasMenuAccess('employee_201', 'update'));
 
       Scramble::configure()
           ->withDocumentTransformers(function (OpenApi $openApi) {

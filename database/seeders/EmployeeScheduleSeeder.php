@@ -13,7 +13,7 @@ class EmployeeScheduleSeeder extends Seeder
     public function run(): void
     {
         $schedule = Schedule::where('name', 'Office - Mon to Fri')->where('is_active', true)->first();
-        $admin = User::whereHas('employee', fn ($query) => $query->where('type', 'admin'))->firstOrFail();
+        $admin = User::whereHas('role', fn ($query) => $query->where('code', 'admin'))->firstOrFail();
         $service = app(EmployeeScheduleService::class);
 
         // Use employees from this database, never fixed IDs from a previous seed.

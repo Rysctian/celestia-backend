@@ -6,6 +6,7 @@ use App\Models\Employee;
 use App\Models\EmployeeSchedule;
 use App\Models\Schedule;
 use App\Models\User;
+use App\Models\Role;
 use Database\Seeders\EmployeeScheduleSeeder;
 use Database\Seeders\ScheduleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -25,7 +26,9 @@ class ScheduleTest extends TestCase
     private function login(bool $admin = true): User
     {
         $employee = Employee::factory()->create(['type' => $admin ? 'admin' : 'employee']);
-        $user = User::factory()->forEmployee($employee)->create();
+        $user = User::factory()->forEmployee($employee)->create([
+            'role_id' => Role::where('code', $admin ? 'admin' : 'employee')->firstOrFail()->id,
+        ]);
         Sanctum::actingAs($user);
 
         return $user;

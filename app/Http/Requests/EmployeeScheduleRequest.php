@@ -12,11 +12,12 @@ class EmployeeScheduleRequest extends FormRequest
     public function authorize(): bool
     {
         if (in_array($this->route()->getActionMethod(), ['index', 'find'], true)) {
-            return $this->user()->can('manage-schedules')
-                || $this->user()->employee_id === $this->route('employee_id');
+            return $this->user()->hasMenuAccess('schedule_list', 'view')
+                || ($this->user()->employee_id === $this->route('employee_id')
+                    && $this->user()->hasMenuAccess('employee_201', 'view'));
         }
 
-        return $this->user()->can('manage-schedules');
+        return $this->user()->hasMenuAccess('schedule_list', $this->isMethod('POST') ? 'create' : 'update');
     }
 
     public function rules(): array

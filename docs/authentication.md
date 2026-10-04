@@ -37,6 +37,6 @@ Expiry applies to newly issued dev tokens. Previously issued tokens are unchange
 and should be revoked separately if no longer needed. No existing passwords or
 database records were modified by this change.
 
-Employee authorization and surname-based initial passwords still need separate
-changes before production. Production must use HTTPS, `APP_ENV=production`,
+Surname-based initial passwords still need separate changes before production.
+Role-based authorization is described in `menu-access.md`. Production must use HTTPS, `APP_ENV=production`,
 `APP_DEBUG=false`, and secure session cookies (`SESSION_SECURE_COOKIE=true`).

@@ -5,8 +5,8 @@ This version uses three tables: `schedules`, `schedule_details`, and
 and responses use the same `message` / `data` structure as EmployeeController.
 Each schedule controller uses one request class. Its methods select validation rules
 by HTTP method so Scramble can document the corresponding body and query fields.
-Employee schedule history checks self/admin access in the controller; date-range
-reads check it in the request class.
+Employee schedule history checks own-record or role-grant access in the controller;
+date-range reads check it in the request class.
 Date-specific overrides, leave, holidays, and attendance are not part
 of this version.
 
@@ -29,9 +29,9 @@ Monday–Friday), then alternate assignments across the freshly created
 employees. Assignment dates start on the first day of the current month.
 
 The existing seeded `admin@example.com` account (password `a`) is linked to the
-first employee, now marked `admin`, so it can test these endpoints in Scramble.
+first employee, now assigned the Admin role, so it can test these endpoints in Scramble.
 These are development credentials. The other generated user for that same employee
-also inherits the employee's admin role. Passwords were not changed by this feature.
+also has the Admin role. Passwords were not changed by this feature.
 
 To seed templates and assign employees added since the last seed, without replacing
 existing assignments:
@@ -48,10 +48,11 @@ assign a schedule; use the tagging endpoint to choose one.
 ## Access
 
 Use Sanctum authentication, including the local Scramble token flow described in
-`authentication.md`. Only users linked to an employee with `type = admin` can manage
-schedules and assignments. Employees can view their own schedule and history.
-Employee create/update endpoints now require admin access too, preventing a regular
-user from granting themselves the admin role. Employee listing/read access is unchanged.
+`authentication.md`. Schedule List grants control schedule reads and writes.
+Employees with Employee 201 File `view` access can view their own schedule and history.
+Employee create/update actions require matching Employee 201 File grants. See
+`menu-access.md` for the role and menu API. The legacy employee `type` field no
+longer grants access.
 
 ## Routes
 

@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Models\Employee;
 use App\Models\User;
+use App\Models\Role;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -44,6 +45,11 @@ class UserFactory extends Factory
             'employee_id' => $employee->employee_id,
             'name' => $employee->first_name . ' ' . $employee->last_name,
         ]);
+    }
+
+    public function withRole(Role $role): static
+    {
+        return $this->state(fn () => ['role_id' => $role->id]);
     }
 
     /**

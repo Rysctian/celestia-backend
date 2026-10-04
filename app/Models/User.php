@@ -13,7 +13,14 @@ use Laravel\Sanctum\HasApiTokens;
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-     use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable;
+
+    protected static function booted(): void
+    {
+        static::creating(function (self $user) {
+            $user->role_id ??= Role::where('code', 'employee')->value('id');
+        });
+    }
 
     /**
      * The attributes that are mass assignable.
@@ -23,6 +30,7 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'employee_id',
+        'role_id',
         'email',
         'password',
     ];
@@ -53,5 +61,23 @@ class User extends Authenticatable
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'employee_id', 'employee_id');
+    }
+
+    public function role(): BelongsTo
+    {
+        return $this->belongsTo(Role::class);
+    }
+
+    public function hasMenuAccess(string $code, string $action = 'view'): bool
+    {
+        if (! in_array($action, ['view', 'create', 'update', 'delete'], true)) {
+            return false;
+        }
+
+        return $this->role()->whereHas('menus', fn ($query) => $query
+            ->where('code', $code)
+            ->where('is_active', true)
+            ->where('role_menu_access.can_'.$action, true))
+            ->exists();
     }
 }

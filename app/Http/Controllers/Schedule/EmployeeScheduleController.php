@@ -14,6 +14,12 @@ class EmployeeScheduleController extends Controller
 
     public function index(Request $request, string $employee_id)
     {
+        abort_unless(
+            $request->user()->hasMenuAccess('schedule_list', 'view')
+                || ($request->user()->employee_id === $employee_id
+                    && $request->user()->hasMenuAccess('employee_201', 'view')),
+            403
+        );
         $assignments = $this->empSchedService->findAll($employee_id);
 
         return response()->json(['message' => 'success', 'data' => $assignments]);

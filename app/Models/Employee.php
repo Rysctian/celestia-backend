@@ -2,13 +2,16 @@
 
 namespace App\Models;
 
+use App\Queries\EmployeeQuery;
+use Database\Factories\EmployeeFactory;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Employee extends Model
 {
-    /** @use HasFactory<\Database\Factories\EmployeeFactory> */
-    use HasFactory;
+    /** @use HasFactory<EmployeeFactory> */
+    use EmployeeQuery, HasFactory;
+
     protected $fillable = [
         'employee_id',
         'type',
@@ -24,7 +27,8 @@ class Employee extends Model
         'telephone_no',
     ];
 
-    public function user(){
+    public function user()
+    {
         return $this->hasOne(User::class, 'employee_id', 'employee_id');
     }
 
@@ -32,5 +36,4 @@ class Employee extends Model
     {
         return $this->hasMany(EmployeeSchedule::class, 'employee_id', 'employee_id');
     }
-
 }
