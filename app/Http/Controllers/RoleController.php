@@ -13,26 +13,26 @@ class RoleController extends Controller
 {
     public function __construct(private MenuAccessService $menuAccess) {}
 
-    public function index(): JsonResponse
+    public function index()
     {
         return response()->json(['message' => 'success', 'data' => Role::orderBy('id')->get()]);
     }
 
-    public function store(RoleRequest $request): JsonResponse
+    public function store(RoleRequest $request)
     {
         $role = Role::create($request->validated());
 
         return response()->json(['message' => 'Role created.', 'data' => $role], 201);
     }
 
-    public function update(RoleRequest $request, Role $role): JsonResponse
+    public function update(RoleRequest $request, Role $role)
     {
         $role->update($request->validated());
 
         return response()->json(['message' => 'Role updated.', 'data' => $role]);
     }
 
-    public function access(Role $role): JsonResponse
+    public function access(Role $role)
     {
         return response()->json(['message' => 'success', 'data' => $this->menuAccess->grants($role)]);
     }

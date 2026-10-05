@@ -29,6 +29,7 @@ class ScheduleController extends Controller
 
     public function store(ScheduleRequest $request)
     {
+
         $schedule = $this->schedService->createSchedule($request->validated());
 
         return response()->json(['message' => 'Schedule created successfully.', 'data' => $schedule], 201);

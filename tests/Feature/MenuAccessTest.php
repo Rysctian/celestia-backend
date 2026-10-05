@@ -7,6 +7,7 @@ use App\Models\Menu;
 use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\MenuAccessSeeder;
+use Database\Seeders\MenuSeeder;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -138,5 +139,17 @@ class MenuAccessTest extends TestCase
 
         $this->assertFalse((bool) $admin->menus()->where('menus.id', $menu->id)->firstOrFail()->pivot->can_update);
         $this->assertDatabaseCount('menus', 7);
+    }
+
+    public function test_menu_seeder_does_not_seed_access(): void
+    {
+        $menu = Menu::where('code', 'user_management')->firstOrFail();
+        $menu->delete();
+        $grantsBefore = \Illuminate\Support\Facades\DB::table('role_menu_access')->count();
+
+        $this->seed(MenuSeeder::class);
+
+        $this->assertDatabaseHas('menus', ['code' => 'user_management']);
+        $this->assertDatabaseCount('role_menu_access', $grantsBefore);
     }
 }
