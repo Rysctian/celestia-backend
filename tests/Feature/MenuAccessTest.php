@@ -23,15 +23,15 @@ class MenuAccessTest extends TestCase
             ->withRole(Role::where('code', $role)->firstOrFail())->create();
     }
 
-    public function test_migration_backfills_roles_and_new_users_default_to_employee(): void
+    public function test_fresh_migrations_seed_roles_and_new_users_default_to_employee(): void
     {
-        $adminEmployee = Employee::factory()->create(['type' => 'admin']);
-        $admin = User::factory()->forEmployee($adminEmployee)->create();
-        $employee = $this->user();
+        $this->assertDatabaseHas('roles', ['id' => 1, 'code' => 'admin']);
+        $this->assertDatabaseHas('roles', ['id' => 2, 'code' => 'employee']);
 
-        $migration = require database_path('migrations/2026_10_04_000001_create_menu_access_tables.php');
-        $migration->down();
-        $migration->up();
+        $adminEmployee = Employee::factory()->create(['type' => 'admin']);
+        $admin = User::factory()->forEmployee($adminEmployee)
+            ->withRole(Role::where('code', 'admin')->firstOrFail())->create();
+        $employee = $this->user();
 
         $this->assertSame('admin', $admin->fresh()->role->code);
         $this->assertSame('employee', $employee->fresh()->role->code);

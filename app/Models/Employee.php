@@ -46,9 +46,4 @@ class Employee extends Model
     {
         return $this->hasMany(EmployeeAttendance::class, 'employee_id', 'employee_id');
     }
-
-    public function attendanceCutoffs()
-    {
-        return $this->hasMany(AttendanceCutoffSummary::class, 'employee_id', 'employee_id');
-    }
 }

@@ -13,9 +13,9 @@ class EmployeeLogFactory extends Factory
     {
         return [
             'employee_id' => fn () => Employee::factory()->create()->employee_id,
-            'logged_at' => now()->startOfDay()->addHours(8),
-            'source' => 'biometric', 'device_id' => 'test-device',
-            'external_log_id' => fake()->uuid(), 'raw_payload' => ['device' => 'test-device'],
+            'logged_at' => fake()->dateTimeBetween('-1 month'),
+            'device_id' => fake()->optional()->bothify('device-###'),
+            'source' => 'biometric',
         ];
     }
 }

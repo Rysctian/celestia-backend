@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('overtime_applications', function (Blueprint $table) {
             $table->id();
-             $table->string('employee_id', 30);
+            $table->string('employee_id', 30);
 
             $table->foreign('employee_id')
                 ->references('employee_id')
@@ -25,6 +25,7 @@ return new class extends Migration
             $table->text('reason');
             $table->boolean('allow_approver');
             $table->string('status')->default('pending');
+            $table->foreignId('approved_by')->nullable()->constrained('users')->restrictOnDelete();
             $table->timestamp('approved_at')->nullable();
             $table->text('rejection_reason')->nullable();
             $table->timestamps();

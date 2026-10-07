@@ -31,4 +31,17 @@ class EmployeeSchedule extends Model
     {
         return $this->belongsTo(User::class, 'assigned_by');
     }
+
+    public function scopeForDate($query, string $employeeId, string $date)
+    {
+        return $query
+            ->where('employee_id', $employeeId)
+            ->whereDate('effective_from', '<=', $date)
+            ->where(function ($query) use ($date) {
+                $query
+                    ->whereNull('effective_to')
+                    ->orWhereDate('effective_to', '>=', $date);
+            })
+            ->orderByDesc('effective_from');
+    }
 }
