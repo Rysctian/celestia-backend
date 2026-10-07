@@ -14,7 +14,7 @@ class AccessSeeder extends Seeder
         $admin = Role::firstOrCreate(['code' => 'admin'], ['name' => 'Admin']);
         $employee = Role::firstOrCreate(['code' => 'employee'], ['name' => 'Employee']);
 
-        foreach (Menu::whereIn('code', ['dashboard', 'schedule_list', 'employee_201', 'user_management'])->get() as $menu) {
+        foreach (Menu::whereIn('code', ['dashboard', 'schedule_list', 'attendance', 'employee_201', 'user_management'])->get() as $menu) {
             DB::table('role_menu_access')->insertOrIgnore([
                 'role_id' => $admin->id, 'menu_id' => $menu->id,
                 'can_view' => true, 'can_create' => true, 'can_update' => true, 'can_delete' => true,

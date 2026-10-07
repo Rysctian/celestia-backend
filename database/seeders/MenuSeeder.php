@@ -13,6 +13,7 @@ class MenuSeeder extends Seeder
             ['code' => 'dashboard',         'title' => 'Dashboard',         'path' => '/',          'parent' => null,                 'sort_order' => 0],
             ['code' => 'daily_time_record', 'title' => 'Daily Time Record', 'path' => null,         'parent' => null,                 'sort_order' => 1],
             ['code' => 'schedule_list',     'title' => 'Schedule List',     'path' => '/schedules', 'parent' => 'daily_time_record',  'sort_order' => 0],
+            ['code' => 'attendance',        'title' => 'Attendance',        'path' => '/attendance', 'parent' => 'daily_time_record', 'sort_order' => 1],
             ['code' => 'employee_database', 'title' => 'Employee Database', 'path' => null,         'parent' => null,                 'sort_order' => 2],
             ['code' => 'employee_201',      'title' => 'Employee 201 File', 'path' => '/employees', 'parent' => 'employee_database',  'sort_order' => 0],
             ['code' => 'administration',    'title' => 'Administration',    'path' => null,         'parent' => null,                 'sort_order' => 3],

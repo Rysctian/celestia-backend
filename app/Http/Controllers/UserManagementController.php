@@ -4,13 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\UserRoleRequest;
 use App\Models\User;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
 class UserManagementController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $users = User::with('role:id,code,name')->orderBy('id')->get(['id', 'employee_id', 'name', 'email', 'role_id']);
+        $users = User::with('role:id,code,name')->filterSearch($request)->get(['id', 'employee_id', 'name', 'email', 'role_id']);
 
         return response()->json(['message' => 'success', 'data' => $users]);
     }

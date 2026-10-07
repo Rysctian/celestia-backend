@@ -40,6 +40,7 @@ class DatabaseSeeder extends Seeder
             ScheduleSeeder::class,
             EmployeeScheduleSeeder::class,
             MenuSeeder::class,
+            AttendanceSeeder::class,
         ]);
     }
 }

@@ -3,20 +3,21 @@
 namespace App\Services;
 
 use App\Helpers\DateHelper;
+use App\Helpers\ScheduleHelper;
 use App\Models\Employee;
 use App\Models\EmployeeSchedule;
 use App\Models\Schedule;
 use Carbon\CarbonImmutable;
-use Illuminate\Support\Facades\Date;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class EmployeeScheduleService
 {
-    public function findAll(string $employee_id)
+    public function findAll(string $employee_id, ?Request $request = null)
     {
         return EmployeeSchedule::with('schedule.details')->where('employee_id', $employee_id)
-            ->orderBy('effective_from')->get();
+            ->filterSearch($request ?? new Request)->get();
     }
 
     public function assignSchedule(array $data, int $assigned_by)
@@ -63,7 +64,7 @@ class EmployeeScheduleService
             $assignment = EmployeeSchedule::findOrFail($id);
             Employee::where('employee_id', $assignment->employee_id)->lockForUpdate()->firstOrFail();
             $assignment = EmployeeSchedule::with('schedule')->lockForUpdate()->findOrFail($id);
-            $today      = CarbonImmutable::today($assignment->schedule->timezone)->toDateString();
+            $today = CarbonImmutable::today($assignment->schedule->timezone)->toDateString();
 
             if (($assignment->effective_to && $assignment->effective_to->toDateString() < $today) || $data['effective_to'] < $today || $data['effective_to'] < $assignment->effective_from->toDateString()) {
                 throw ValidationException::withMessages(['effective_to' => 'Only current or future assignments can be changed. The end date must be today or later and on or after the start date.']);
@@ -88,7 +89,7 @@ class EmployeeScheduleService
             ->orderBy('effective_from')->get();
 
         $result = [];
-        $dates = DateHelper::dateRange($data["from"], $data["to"]);
+        $dates = DateHelper::dateRange($data['from'], $data['to']);
         foreach ($dates as $dateString) {
             $assignment = $assignments->first(fn ($item) => $item->effective_from->toDateString() <= $dateString
                 && (! $item->effective_to || $item->effective_to->toDateString() >= $dateString));
@@ -99,7 +100,7 @@ class EmployeeScheduleService
                 continue;
             }
 
-            $shifts = $this->shiftsForDate($assignment->schedule, CarbonImmutable::parse($dateString));
+            $shifts = ScheduleHelper::shiftsForDate($assignment->schedule, CarbonImmutable::parse($dateString));
             $result[] = [
                 'work_date' => $dateString,
                 'status' => $shifts === [] ? 'rest_day' : 'working',
@@ -135,27 +136,27 @@ class EmployeeScheduleService
             if (($to === null || $otherFrom <= $to) && ($otherTo === null || $otherTo >= $from)) {
                 throw ValidationException::withMessages(['employee_ids' => "Employee {$assignment->employee_id} already has a schedule in this date range. End the existing assignment before adding a new one."]);
             }
+
+            // Adjacent assignments can still overlap when the earlier shift crosses midnight.
+            if ($otherTo && CarbonImmutable::parse($otherTo)->addDay()->toDateString() === $from) {
+                $this->ensureBoundaryShiftsDoNotOverlap($other, $otherTo, $assignment, $from);
+            }
+            if ($to && CarbonImmutable::parse($to)->addDay()->toDateString() === $otherFrom) {
+                $this->ensureBoundaryShiftsDoNotOverlap($assignment, $to, $other, $otherFrom);
+            }
         }
     }
 
-    private function shiftsForDate(Schedule $schedule, CarbonImmutable $date): array
+    private function ensureBoundaryShiftsDoNotOverlap(EmployeeSchedule $earlier, string $earlierDate, EmployeeSchedule $later, string $laterDate): void
     {
-        $shifts = [];
-        foreach ($schedule->details->where('day_of_week', $date->isoWeekday()) as $detail) {
-            if ($detail->is_rest_day) {
-                continue;
+        $earlierShifts = ScheduleHelper::shiftsForDate($earlier->schedule->loadMissing('details'), CarbonImmutable::parse($earlierDate));
+        $laterShifts = ScheduleHelper::shiftsForDate($later->schedule->loadMissing('details'), CarbonImmutable::parse($laterDate));
+        foreach ($earlierShifts as $first) {
+            foreach ($laterShifts as $second) {
+                if ($first['start']->lessThan($second['end']) && $first['end']->greaterThan($second['start'])) {
+                    throw ValidationException::withMessages(['employee_ids' => 'An overnight shift overlaps the adjacent schedule assignment.']);
+                }
             }
-
-            $start = CarbonImmutable::parse($date->toDateString().' '.$detail->start_time, $schedule->timezone);
-            $end = CarbonImmutable::parse($date->toDateString().' '.$detail->end_time, $schedule->timezone);
-            $shifts[] = [
-                'detail_id' => $detail->id,
-                'start' => $start,
-                'end' => $end,
-                'unpaid_break_minutes' => $detail->unpaid_break_minutes,
-            ];
         }
-
-        return $shifts;
     }
 }

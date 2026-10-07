@@ -2,7 +2,7 @@
 
 namespace App\Models;
 
-use Database\Factories\RoleFactory;
+use App\Queries\RoleQuery;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Role extends Model
 {
-    use HasFactory;
+    use HasFactory, RoleQuery;
 
     protected $fillable = ['code', 'name'];
 

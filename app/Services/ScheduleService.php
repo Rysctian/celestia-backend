@@ -8,9 +8,9 @@ use Illuminate\Validation\ValidationException;
 
 class ScheduleService
 {
-    public function findAll()
+    public function search($request)
     {
-        return Schedule::with('details')->orderBy('id')->get();
+        return Schedule::with('details')->filterSearch($request)->get();
     }
 
     public function findById(string $id)

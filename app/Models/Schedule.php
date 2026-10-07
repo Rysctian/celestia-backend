@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Queries\ScheduleQuery;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Schedule extends Model
 {
-    use HasFactory;
+    use HasFactory, ScheduleQuery;
 
     protected $fillable = ['name', 'timezone', 'is_active'];
 

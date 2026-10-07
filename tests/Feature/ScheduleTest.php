@@ -4,9 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Employee;
 use App\Models\EmployeeSchedule;
+use App\Models\Role;
 use App\Models\Schedule;
 use App\Models\User;
-use App\Models\Role;
 use Database\Seeders\EmployeeScheduleSeeder;
 use Database\Seeders\ScheduleSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -294,5 +294,48 @@ class ScheduleTest extends TestCase
         $this->getJson('/api/schedules')->assertUnauthorized();
         $this->postJson('/api/employee-schedules')->assertUnauthorized();
         $this->getJson('/api/employees/EMP-20260001/schedule?from=2026-10-01&to=2026-10-02')->assertUnauthorized();
+    }
+
+    public function test_overnight_templates_resolve_to_the_next_date_and_reject_weekly_overlap(): void
+    {
+        $user = $this->login();
+        $template = $this->template();
+        $template['details'] = collect(range(1, 7))->map(fn ($day) => [
+            'day_of_week' => $day, 'is_rest_day' => $day >= 6,
+            'start_time' => $day >= 6 ? null : '22:00', 'end_time' => $day >= 6 ? null : '06:00',
+        ])->all();
+        $id = $this->postJson('/api/schedules', $template)->assertCreated()->json('data.id');
+        $this->postJson('/api/employee-schedules', [
+            'employee_ids' => [$user->employee_id], 'schedule_id' => $id, 'effective_from' => '2026-10-01',
+        ])->assertCreated();
+        $this->getJson('/api/employees/'.$user->employee_id.'/schedule?from=2026-10-06&to=2026-10-06')->assertOk()
+            ->assertJsonPath('data.0.shifts.0.ends_at', '2026-10-07T06:00:00+08:00')
+            ->assertJsonPath('data.0.scheduled_minutes', 480);
+
+        $template['details'][6] = ['day_of_week' => 7, 'is_rest_day' => false, 'start_time' => '23:00', 'end_time' => '23:00'];
+        $this->postJson('/api/schedules', $template)->assertUnprocessable();
+        $template['details'][6]['end_time'] = '23:30';
+        $this->postJson('/api/schedules', $template)->assertCreated();
+        $template['details'][0]['start_time'] = '00:00';
+        $template['details'][0]['end_time'] = '06:00';
+        $template['details'][6]['end_time'] = '01:00';
+        $this->postJson('/api/schedules', $template)->assertUnprocessable();
+    }
+
+    public function test_adjacent_assignments_cannot_overlap_across_midnight(): void
+    {
+        $user = $this->login();
+        $night = Schedule::factory()->withWeek()->create();
+        $night->details()->where('day_of_week', 2)->delete();
+        $night->details()->create(['day_of_week' => 2, 'is_rest_day' => false, 'start_time' => '22:00', 'end_time' => '09:00']);
+        EmployeeSchedule::factory()->create([
+            'employee_id' => $user->employee_id, 'schedule_id' => $night->id,
+            'effective_from' => '2026-10-01', 'effective_to' => '2026-10-06',
+        ]);
+        $day = Schedule::factory()->withWeek()->create();
+        $this->postJson('/api/employee-schedules', [
+            'employee_ids' => [$user->employee_id], 'schedule_id' => $day->id, 'effective_from' => '2026-10-07',
+        ])->assertUnprocessable();
+        $this->assertDatabaseCount('employee_schedules', 1);
     }
 }

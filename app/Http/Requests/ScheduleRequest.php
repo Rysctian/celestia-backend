@@ -29,11 +29,12 @@ class ScheduleRequest extends FormRequest
             'timezone' => ['nullable', 'string', 'timezone', 'max:50'],
             'is_active' => ['sometimes', 'boolean'],
             'details' => ['required', 'array', 'min:7'],
-            'details.*' => ['required', 'array:day_of_week,is_rest_day,start_time,end_time'],
+            'details.*' => ['required', 'array:day_of_week,is_rest_day,start_time,end_time,unpaid_break_minutes'],
             'details.*.day_of_week' => ['required', 'integer', 'between:1,7'],
             'details.*.is_rest_day' => ['required', 'boolean'],
             'details.*.start_time' => ['present', 'nullable', 'date_format:H:i'],
             'details.*.end_time' => ['present', 'nullable', 'date_format:H:i'],
+            'details.*.unpaid_break_minutes' => ['sometimes', 'integer', 'min:0', 'max:1439'],
         ];
     }
 
@@ -66,7 +67,7 @@ class ScheduleRequest extends FormRequest
 
                 if ($detail['is_rest_day']) {
                     $restDays[$weekday] = true;
-                    if ($detail['start_time'] !== null || $detail['end_time'] !== null) {
+                    if ($detail['start_time'] !== null || $detail['end_time'] !== null || ($detail['unpaid_break_minutes'] ?? 0) > 0) {
                         $validator->errors()->add("details.$index", 'Rest days must have null times.');
                     }
 
@@ -84,11 +85,17 @@ class ScheduleRequest extends FormRequest
                 $start = $startHour * 60 + $startMinute;
                 $end = $endHour * 60 + $endMinute;
 
-                if ($end <= $start) {
-                    $validator->errors()->add("details.$index", 'End time must be after start time on the same day.');
+                if ($end === $start) {
+                    $validator->errors()->add("details.$index", 'Start and end times must differ.');
+                }
+                if ($end < $start) {
+                    $end += 1440;
+                }
+                if (($detail['unpaid_break_minutes'] ?? 0) >= $end - $start) {
+                    $validator->errors()->add("details.$index", 'Unpaid break must be shorter than the working slot.');
                 }
 
-                $shifts[$weekday][] = ['start' => $start, 'end' => $end];
+                $shifts[] = ['start' => ($weekday - 1) * 1440 + $start, 'end' => ($weekday - 1) * 1440 + $end];
             }
 
             if (count($weekdays) !== 7) {
@@ -101,12 +108,13 @@ class ScheduleRequest extends FormRequest
                 }
             }
 
-            foreach ($shifts as $dayShifts) {
-                usort($dayShifts, fn ($a, $b) => $a['start'] <=> $b['start']);
-                for ($index = 0; $index < count($dayShifts) - 1; $index++) {
-                    if ($dayShifts[$index]['end'] > $dayShifts[$index + 1]['start']) {
-                        $validator->errors()->add('details', 'A slot overlaps another slot.');
-                    }
+            // Include next Monday so Sunday overnight slots are checked too.
+            $nextWeek = array_map(fn ($shift) => ['start' => $shift['start'] + 10080, 'end' => $shift['end'] + 10080], $shifts);
+            $shifts = array_merge($shifts, $nextWeek);
+            usort($shifts, fn ($a, $b) => $a['start'] <=> $b['start']);
+            for ($index = 0; $index < count($shifts) - 1; $index++) {
+                if ($shifts[$index]['end'] > $shifts[$index + 1]['start']) {
+                    $validator->errors()->add('details', 'A slot overlaps another slot.');
                 }
             }
         }];

@@ -25,6 +25,11 @@ hard-coded and needs separate integration with `GET /api/me/menus`.
 
 ## API
 
+`GET /api/users` and `GET /api/roles` support search, filters, sorting, and
+`limit` / `offset` pagination, defaulting to 15 rows ordered by `created_at desc`.
+See the [frontend query guide](filter-search.md) before integrating lists or role
+dropdowns.
+
 All routes require Sanctum authentication. Responses use `message` and `data`.
 The management routes require User Management `view`, `create`, or `update` access.
 

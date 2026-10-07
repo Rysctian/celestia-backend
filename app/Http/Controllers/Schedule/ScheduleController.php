@@ -4,15 +4,16 @@ namespace App\Http\Controllers\Schedule;
 
 use App\Http\Requests\ScheduleRequest;
 use App\Services\ScheduleService;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
 class ScheduleController extends Controller
 {
     public function __construct(private ScheduleService $schedService) {}
 
-    public function index()
+    public function index(Request $request)
     {
-        $schedules = $this->schedService->findAll();
+        $schedules = $this->schedService->search($request);
 
         return response()->json(['message' => 'success', 'data' => $schedules]);
     }

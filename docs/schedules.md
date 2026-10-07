@@ -7,8 +7,8 @@ Each schedule controller uses one request class. Its methods select validation r
 by HTTP method so Scramble can document the corresponding body and query fields.
 Employee schedule history checks own-record or role-grant access in the controller;
 date-range reads check it in the request class.
-Date-specific overrides, leave, holidays, and attendance are not part
-of this version.
+Attendance processing, approved daily exceptions, and cutoff confirmation are
+documented in [the attendance module guide](attendance.md).
 
 ## Create development data
 
@@ -23,9 +23,8 @@ This command deletes the existing database tables. To keep existing data, run
 rows to `schedule_details` and allows multiple slots per weekday. Existing rows
 keep their old unpaid-break setting; new slots represent breaks as gaps.
 ScheduleSeeder and EmployeeScheduleSeeder are called
-after the existing employee/user creation in DatabaseSeeder. They create two weekly
-templates (office 08:00–12:00 and 13:00–17:00, and night 22:00–07:00, both
-Monday–Friday), then alternate assignments across the freshly created
+after the existing employee/user creation in DatabaseSeeder. They create one office
+template (08:00–12:00 and 13:00–17:00, Monday–Friday) and assign it to the generated
 employees. Assignment dates start on the first day of the current month.
 
 The existing seeded `admin@example.com` account (password `a`) is linked to the
@@ -56,6 +55,10 @@ longer grants access.
 
 ## Routes
 
+`GET /api/schedules` supports search, filters, sorting, and `limit` / `offset`
+pagination, defaulting to 15 rows ordered by `created_at desc`. See the
+[frontend query guide](filter-search.md) for parameters and response behavior.
+
 | Method | Route | Purpose |
 | --- | --- | --- |
 | GET | `/api/schedules` | List templates and their details (admin) |
@@ -80,18 +83,18 @@ POST `/api/schedules`:
   "timezone": "Asia/Manila",
   "is_active": true,
   "details": [
-    {"day_of_week": 1, "is_rest_day": false, "start_time": "08:00", "end_time": "12:00", "ends_next_day": false},
-    {"day_of_week": 1, "is_rest_day": false, "start_time": "13:00", "end_time": "17:00", "ends_next_day": false},
-    {"day_of_week": 2, "is_rest_day": false, "start_time": "08:00", "end_time": "12:00", "ends_next_day": false},
-    {"day_of_week": 2, "is_rest_day": false, "start_time": "13:00", "end_time": "17:00", "ends_next_day": false},
-    {"day_of_week": 3, "is_rest_day": false, "start_time": "08:00", "end_time": "12:00", "ends_next_day": false},
-    {"day_of_week": 3, "is_rest_day": false, "start_time": "13:00", "end_time": "17:00", "ends_next_day": false},
-    {"day_of_week": 4, "is_rest_day": false, "start_time": "08:00", "end_time": "12:00", "ends_next_day": false},
-    {"day_of_week": 4, "is_rest_day": false, "start_time": "13:00", "end_time": "17:00", "ends_next_day": false},
-    {"day_of_week": 5, "is_rest_day": false, "start_time": "08:00", "end_time": "12:00", "ends_next_day": false},
-    {"day_of_week": 5, "is_rest_day": false, "start_time": "13:00", "end_time": "17:00", "ends_next_day": false},
-    {"day_of_week": 6, "is_rest_day": true, "start_time": null, "end_time": null, "ends_next_day": false},
-    {"day_of_week": 7, "is_rest_day": true, "start_time": null, "end_time": null, "ends_next_day": false}
+    {"day_of_week": 1, "is_rest_day": false, "start_time": "08:00", "end_time": "12:00"},
+    {"day_of_week": 1, "is_rest_day": false, "start_time": "13:00", "end_time": "17:00"},
+    {"day_of_week": 2, "is_rest_day": false, "start_time": "08:00", "end_time": "12:00"},
+    {"day_of_week": 2, "is_rest_day": false, "start_time": "13:00", "end_time": "17:00"},
+    {"day_of_week": 3, "is_rest_day": false, "start_time": "08:00", "end_time": "12:00"},
+    {"day_of_week": 3, "is_rest_day": false, "start_time": "13:00", "end_time": "17:00"},
+    {"day_of_week": 4, "is_rest_day": false, "start_time": "08:00", "end_time": "12:00"},
+    {"day_of_week": 4, "is_rest_day": false, "start_time": "13:00", "end_time": "17:00"},
+    {"day_of_week": 5, "is_rest_day": false, "start_time": "08:00", "end_time": "12:00"},
+    {"day_of_week": 5, "is_rest_day": false, "start_time": "13:00", "end_time": "17:00"},
+    {"day_of_week": 6, "is_rest_day": true, "start_time": null, "end_time": null},
+    {"day_of_week": 7, "is_rest_day": true, "start_time": null, "end_time": null}
   ]
 }
 ```
@@ -151,7 +154,6 @@ with an unpaid-break setting still subtract that amount until their template is 
 
 ```php
 Schedule::factory()->withWeek()->create();         // Complete split-slot office week
-Schedule::factory()->withWeek(true)->create();     // Complete night week
 ScheduleDetail::factory()->create();              // One slot on a new empty template
 EmployeeSchedule::factory()->create();            // New employee + complete office schedule
 ```

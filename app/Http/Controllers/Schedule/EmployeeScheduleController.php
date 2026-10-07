@@ -20,7 +20,7 @@ class EmployeeScheduleController extends Controller
                     && $request->user()->hasMenuAccess('employee_201', 'view')),
             403
         );
-        $assignments = $this->empSchedService->findAll($employee_id);
+        $assignments = $this->empSchedService->findAll($employee_id, $request);
 
         return response()->json(['message' => 'success', 'data' => $assignments]);
     }

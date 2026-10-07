@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Queries\EmployeeScheduleQuery;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class EmployeeSchedule extends Model
 {
-    use HasFactory;
+    use EmployeeScheduleQuery, HasFactory;
 
     protected $fillable = ['employee_id', 'schedule_id', 'effective_from', 'effective_to', 'assigned_by'];
 

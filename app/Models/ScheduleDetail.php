@@ -10,7 +10,7 @@ class ScheduleDetail extends Model
     use HasFactory;
 
     protected $fillable = [
-        'schedule_id', 'day_of_week', 'is_rest_day', 'start_time', 'end_time',
+        'schedule_id', 'day_of_week', 'is_rest_day', 'start_time', 'end_time', 'unpaid_break_minutes',
     ];
 
     protected function casts(): array

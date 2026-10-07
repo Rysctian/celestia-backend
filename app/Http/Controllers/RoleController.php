@@ -7,15 +7,16 @@ use App\Http\Requests\RoleRequest;
 use App\Models\Role;
 use App\Services\MenuAccessService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 
 class RoleController extends Controller
 {
     public function __construct(private MenuAccessService $menuAccess) {}
 
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(['message' => 'success', 'data' => Role::orderBy('id')->get()]);
+        return response()->json(['message' => 'success', 'data' => Role::filterSearch($request)->get()]);
     }
 
     public function store(RoleRequest $request)

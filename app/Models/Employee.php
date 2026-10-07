@@ -36,4 +36,19 @@ class Employee extends Model
     {
         return $this->hasMany(EmployeeSchedule::class, 'employee_id', 'employee_id');
     }
+
+    public function logs()
+    {
+        return $this->hasMany(EmployeeLog::class, 'employee_id', 'employee_id');
+    }
+
+    public function attendance()
+    {
+        return $this->hasMany(EmployeeAttendance::class, 'employee_id', 'employee_id');
+    }
+
+    public function attendanceCutoffs()
+    {
+        return $this->hasMany(AttendanceCutoffSummary::class, 'employee_id', 'employee_id');
+    }
 }
