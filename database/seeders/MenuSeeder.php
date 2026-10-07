@@ -18,6 +18,7 @@ class MenuSeeder extends Seeder
             ['code' => 'employee_201',      'title' => 'Employee 201 File', 'path' => '/employees', 'parent' => 'employee_database',  'sort_order' => 0],
             ['code' => 'administration',    'title' => 'Administration',    'path' => null,         'parent' => null,                 'sort_order' => 3],
             ['code' => 'user_management',   'title' => 'User Management',   'path' => '/user-management',     'parent' => 'administration',     'sort_order' => 0],
+            ['code' => 'payroll_cutoff',    'title' => 'Payroll Cut-Off',   'path' => '/payroll-cutoffs',     'parent' => 'administration',     'sort_order' => 1],
         ];
 
         foreach ($catalog as $item) {

@@ -4,6 +4,7 @@ use App\Http\Controllers\Attendance\EmployeeAttendanceController;
 use App\Http\Controllers\Auth\AuthenticationController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\MenuController;
+use App\Http\Controllers\PayrollCutoffController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\Schedule\EmployeeScheduleController;
 use App\Http\Controllers\Schedule\ScheduleController;
@@ -29,7 +30,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/menus', [MenuController::class, 'index'])->middleware('can:user_management,view');
     Route::get('/roles', [RoleController::class, 'index'])->middleware('can:user_management,view');
     Route::post('/roles', [RoleController::class, 'store'])->middleware('can:user_management,create');
-    Route::delete('/roles/{role_id}', [RoleController::class, 'delete'])->middleware('can:user_management,delete');
+    Route::delete('/roles/{role_id}', [RoleController::class, 'destroy'])->middleware('can:user_management,destroy');
     Route::put('/roles/{role}', [RoleController::class, 'update'])->middleware('can:user_management,update');
     Route::get('/roles/{role}/access', [RoleController::class, 'access'])->middleware('can:user_management,view');
     Route::put('/roles/{role}/access', [RoleController::class, 'updateAccess'])->middleware('can:user_management,update');
@@ -55,4 +56,10 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get('/employee-attendance', [EmployeeAttendanceController::class, 'showAttendance'])
         ->middleware('can:attendance,view');
+
+    Route::get('/payroll-cutoffs', [PayrollCutoffController::class, 'index'])->middleware('can:payroll_cutoff,view');
+    Route::get('/payroll-cutoffs/{payroll_cutoff_id}', [PayrollCutoffController::class, 'find'])->whereNumber('payroll_cutoff_id')->middleware('can:payroll_cutoff,view');
+    Route::post('/payroll-cutoffs', [PayrollCutoffController::class, 'store'])->middleware('can:payroll_cutoff,create');
+    Route::put('/payroll-cutoffs/{payroll_cutoff_id}', [PayrollCutoffController::class, 'update'])->whereNumber('payroll_cutoff_id')->middleware('can:payroll_cutoff,update');
+    Route::delete('/payroll-cutoffs/{payroll_cutoff_id}', [PayrollCutoffController::class, 'destroy'])->whereNumber('payroll_cutoff_id')->middleware('can:payroll_cutoff,destroy');
 });

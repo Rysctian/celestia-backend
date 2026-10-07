@@ -139,7 +139,7 @@ class MenuAccessTest extends TestCase
         $this->seed(MenuAccessSeeder::class);
 
         $this->assertFalse((bool) $admin->menus()->where('menus.id', $menu->id)->firstOrFail()->pivot->can_update);
-        $this->assertDatabaseCount('menus', 8);
+        $this->assertDatabaseCount('menus', 9);
     }
 
     public function test_menu_seeder_does_not_seed_access(): void

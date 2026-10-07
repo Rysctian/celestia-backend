@@ -45,7 +45,7 @@ class RoleController extends Controller
         return response()->json(['message' => 'Role access updated.', 'data' => $grants]);
     }
 
-    public function deleteRoleAccess(RoleRequest $request)
+    public function destroy(RoleRequest $request)
     {
         $role = Role::findOrFail($request->id);
         $role->delete();
