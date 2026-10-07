@@ -59,7 +59,11 @@ class EmployeeProcessLogsService
             ];
         }
 
-        $result = $this->calculator->calculate($date, $details, $logs);
+        $result = $details->where('is_rest_day', false)->values()
+            ->map(fn ($detail) => [
+                'date' => $date,
+                ...$this->calculator->calculate($date, collect([$detail]), $logs),
+            ])->all();
 
         return [
             'employee_id' => $employeeId,

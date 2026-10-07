@@ -54,6 +54,8 @@ class AttendanceCalculator
         $tardySeconds = $timeIn->greaterThan($tardyStart) ? (int) $tardyStart->diffInSeconds($timeIn) : 0;
         $undertimeSeconds = $timeOut && $timeOut->lessThan($undertimeStart) ? (int) $timeOut->diffInSeconds($scheduleEnd) : 0;
         $earlyOutSeconds = $timeOut && $timeOut->lessThan($earlyDismissalStart) ? (int) $timeOut->diffInSeconds($scheduleEnd) : 0;
+        $renderedSeconds = $this->renderedSeconds($date, $schedules, $timeIn, $timeOut);
+        $absent = $renderedSeconds === 0;
 
         return [
             'sched_start' => $scheduleStart->format('H:i:s'),
@@ -62,19 +64,14 @@ class AttendanceCalculator
             'time_out' => $timeOut?->format('H:i:s'),
 
             'scheduled_seconds' => $scheduledSeconds,
-            'rendered_seconds' => $this->renderedSeconds(
-                $date,
-                $schedules,
-                $timeIn,
-                $timeOut
-            ),
+            'rendered_seconds' => $renderedSeconds,
 
             'tardy_seconds' => $tardySeconds,
-            'undertime_seconds' => $undertimeSeconds,
+            'undertime_seconds' => $absent ? $scheduledSeconds : min($undertimeSeconds, $scheduledSeconds),
             'early_out_seconds' => $earlyOutSeconds,
 
-            'absent' => false,
-            'remarks' => 'present',
+            'absent' => $absent,
+            'remarks' => $absent ? 'absent' : 'present',
         ];
     }
 

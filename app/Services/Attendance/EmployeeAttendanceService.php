@@ -24,13 +24,32 @@ class EmployeeAttendanceService
         $date_range = DateHelper::dateRange($from, $to);
         $results = [];
         foreach ($date_range as $date) {
-            $results[] = app(Pipeline::class)
+            $processed = app(Pipeline::class)
                 ->send([
                     'employee_id' => $data['employee_id'],
                     'date' => $date,
                 ])
                 ->through([AttendanceProcess::class])
                 ->thenReturn();
+
+            if ($processed['result'] !== null) {
+                array_push($results, ...$processed['result']);
+            } else {
+                $results[] = [
+                    'date' => $date,
+                    'sched_start' => null,
+                    'sched_end' => null,
+                    'time_in' => null,
+                    'time_out' => null,
+                    'scheduled_seconds' => 0,
+                    'rendered_seconds' => 0,
+                    'tardy_seconds' => 0,
+                    'undertime_seconds' => 0,
+                    'early_out_seconds' => 0,
+                    'absent' => false,
+                    'remarks' => $processed['remarks'],
+                ];
+            }
         }
 
         return $results;

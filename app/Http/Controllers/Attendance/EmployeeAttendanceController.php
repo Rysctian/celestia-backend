@@ -12,10 +12,13 @@ class EmployeeAttendanceController extends Controller
 
     public function showAttendance(EmployeeAttendanceRequest $request)
     {
-        $result = $this->attendance->processLogs($request->validated());
+        $data = $request->validated();
+        $result = $this->attendance->processLogs($data);
 
         return response()->json([
             'message' => 'Attendance processed successfully.',
+            'date-from' => $data['from'],
+            'date-to' => $data['to'],
             'data' => $result,
         ]);
     }
