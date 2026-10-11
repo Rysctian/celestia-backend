@@ -72,8 +72,9 @@ suite is not fully passing:
 These failures occurred on Laravel 12 and PHP 8.2 before the upgrade. They remain
 unresolved and prevent declaring all application features verified.
 
-Composer also reports three existing PSR-4 namespace/path mismatches involving
-`UserSeeder.php`, `OvertimeApplicationController.php`, and `OvertimeAppService.php`.
+Composer reported namespace/path mismatches involving `UserSeeder.php` and the
+former overtime stubs. The overtime classes were replaced under `OnlineApplication`
+on October 12, 2026; the `UserSeeder.php` mismatch remains.
 
 The full upgraded test output and JUnit results are available locally in
 `storage/logs/upgrade-results.txt` and `storage/logs/upgrade-results.xml`.

@@ -60,10 +60,9 @@ References: [ScheduleRequest](../app/Http/Requests/ScheduleRequest.php),
   [EmployeeCorrectionService](../app/Services/Attendance/EmployeeCorrectionService.php)
   are empty files. [EmployeeAttendance](../app/Models/EmployeeAttendance.php) has an
   empty `getAttendanceBetweenDates` method.
-- [OvertimeApplicationController](../app/Http/Controllers/OnlineApplication/OvertimeApplicationController.php)
-  has empty actions and a namespace that omits its `OnlineApplication` folder.
-  [OvertimeAppService](../app/Services/OvertimeAppService.php) is a stub whose declared
-  `App\Services\OnlineApplication` namespace does not match its path or the controller's import.
+- Overtime's former stub controller/service and single-period schema were replaced
+  by the `OnlineApplication` module. See the [API contract](../docs/online-applications.md)
+  and shared `ApplicationApprovalService` for the current workflow.
 - [UserSeeder](../database/seeders/UserSeeder.php) declares a duplicate
   `Database\Factories\UserFactory`, rather than a seeder matching its path.
   These mismatches are not examples of the intended namespace convention.

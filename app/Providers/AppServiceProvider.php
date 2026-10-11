@@ -2,10 +2,12 @@
 
 namespace App\Providers;
 
+use App\Models\OnlineApplication\OvertimeApplication;
 use App\Models\User;
 use Dedoc\Scramble\Scramble;
 use Dedoc\Scramble\Support\Generator\OpenApi;
 use Dedoc\Scramble\Support\Generator\SecurityScheme;
+use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -22,14 +24,15 @@ class AppServiceProvider extends ServiceProvider
     /**
      * Bootstrap any application services.
      */
-  public function boot(): void
-  {
-      Gate::define('manage-schedules', fn (User $user) => $user->hasMenuAccess('schedule_list', 'update'));
-      Gate::define('manage-employees', fn (User $user) => $user->hasMenuAccess('employee_201', 'update'));
+    public function boot(): void
+    {
+        Relation::morphMap(['overtime' => OvertimeApplication::class]);
+        Gate::define('manage-schedules', fn (User $user) => $user->hasMenuAccess('schedule_list', 'update'));
+        Gate::define('manage-employees', fn (User $user) => $user->hasMenuAccess('employee_201', 'update'));
 
-      Scramble::configure()
-          ->withDocumentTransformers(function (OpenApi $openApi) {
-              $openApi->secure(SecurityScheme::http('bearer'));
-          });
-  }
+        Scramble::configure()
+            ->withDocumentTransformers(function (OpenApi $openApi) {
+                $openApi->secure(SecurityScheme::http('bearer'));
+            });
+    }
 }

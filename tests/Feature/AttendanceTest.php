@@ -9,7 +9,6 @@ use App\Models\Employee;
 use App\Models\EmployeeAttendance;
 use App\Models\EmployeeLog;
 use App\Models\EmployeeSchedule;
-use App\Models\OvertimeApplication;
 use App\Models\Role;
 use App\Models\Schedule;
 use App\Models\Timesheet;
@@ -196,36 +195,6 @@ class AttendanceTest extends TestCase
         $this->assertDatabaseCount('attendance_exceptions', 1);
     }
 
-    public function test_only_rendered_approved_overtime_is_credited_and_overlapping_approvals_are_merged(): void
-    {
-        $this->taps(['08:00:00', '12:00:00', '13:00:00', '19:00:00']);
-        OvertimeApplication::factory()->approved()->create([
-            'employee_id' => $this->employee->employee_id, 'overtime_date' => '2026-10-06', 'time_from' => '17:00', 'time_to' => '18:00',
-        ]);
-        OvertimeApplication::factory()->approved()->create([
-            'employee_id' => $this->employee->employee_id, 'overtime_date' => '2026-10-06', 'time_from' => '17:30', 'time_to' => '18:30',
-        ]);
-        OvertimeApplication::factory()->create([
-            'employee_id' => $this->employee->employee_id, 'overtime_date' => '2026-10-06', 'time_from' => '18:30', 'time_to' => '19:00',
-        ]);
-        $this->cutoff()->assertCreated()->assertJsonPath('data.overtime_rendered_seconds', 7200)
-            ->assertJsonPath('data.overtime_approved_seconds', 5400)->assertJsonPath('data.credited_seconds', 34200);
-    }
-
-    public function test_overtime_application_supplies_context_on_a_rest_day_and_approval_refreshes_the_summary(): void
-    {
-        $overtime = OvertimeApplication::factory()->create([
-            'employee_id' => $this->employee->employee_id, 'overtime_date' => '2026-10-10', 'time_from' => '08:00', 'time_to' => '12:00',
-        ]);
-        $this->taps(['08:00:00', '12:00:00'], '2026-10-10');
-        $this->cutoff('2026-10-10', '2026-10-10')->assertCreated()->assertJsonPath('data.scheduled_seconds', 0)
-            ->assertJsonPath('data.overtime_rendered_seconds', 14400)->assertJsonPath('data.overtime_approved_seconds', 0)
-            ->assertJsonPath('data.present_days', 0);
-        $this->postJson('/api/attendance-overtime/'.$overtime->id.'/approve')->assertOk()->assertJsonPath('data.approved_by', $this->admin->id);
-        $this->assertSame(14400, AttendanceCutoffSummary::firstOrFail()->overtime_approved_seconds);
-        $this->assertDatabaseCount('employee_attendance', 1);
-    }
-
     public function test_manual_corrections_are_audited_survive_reprocessing_and_preserve_raw_logs(): void
     {
         $this->taps(['08:00:00', '12:00:00', '13:02:00']);
@@ -365,19 +334,6 @@ class AttendanceTest extends TestCase
         $this->getJson('/api/employee-attendance?employee_id='.$this->employee->employee_id)->assertUnauthorized();
         $this->process()->assertUnauthorized();
         $this->cutoff()->assertUnauthorized();
-    }
-
-    public function test_overlapping_rest_day_overtime_applications_form_one_expected_block(): void
-    {
-        foreach ([['08:00', '09:00'], ['08:30', '18:00']] as [$start, $end]) {
-            OvertimeApplication::factory()->approved()->create([
-                'employee_id' => $this->employee->employee_id, 'overtime_date' => '2026-10-10', 'time_from' => $start, 'time_to' => $end,
-            ]);
-        }
-        $this->taps(['08:00:00', '18:00:00'], '2026-10-10');
-        $this->cutoff('2026-10-10', '2026-10-10')->assertCreated()->assertJsonPath('data.overtime_rendered_seconds', 36000)
-            ->assertJsonPath('data.overtime_approved_seconds', 36000);
-        $this->assertDatabaseCount('employee_attendance', 1);
     }
 
     public function test_schedule_changes_reassign_taps_and_refresh_their_previous_date(): void

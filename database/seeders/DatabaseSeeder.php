@@ -5,6 +5,9 @@ namespace Database\Seeders;
 use App\Models\Employee;
 use App\Models\Role;
 use App\Models\User;
+use Database\Seeders\OnlineApplication\ApplicationApprovalSeeder;
+use Database\Seeders\OnlineApplication\ApproverSetupSeeder;
+use Database\Seeders\OnlineApplication\OvertimeApplicationSeeder;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -44,6 +47,9 @@ class DatabaseSeeder extends Seeder
             EmployeeAttendanceSeeder::class,
             EmployeeAttendanceLogSeeder::class,
             CutOffSeeder::class,
+            ApproverSetupSeeder::class,
+            OvertimeApplicationSeeder::class,
+            ApplicationApprovalSeeder::class,
         ]);
     }
 }

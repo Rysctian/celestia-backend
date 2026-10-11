@@ -5,6 +5,8 @@ use App\Http\Controllers\Auth\AuthenticationController;
 use App\Http\Controllers\CutOffController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\MenuController;
+use App\Http\Controllers\OnlineApplication\ApproverSetupController;
+use App\Http\Controllers\OnlineApplication\OvertimeApplicationController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\Schedule\EmployeeScheduleController;
 use App\Http\Controllers\Schedule\ScheduleController;
@@ -62,4 +64,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/cut-offs', [CutOffController::class, 'store'])->middleware('can:cut_off,create');
     Route::put('/cut-offs/{cut_off_id}', [CutOffController::class, 'update'])->whereNumber('cut_off_id')->middleware('can:cut_off,update');
     Route::delete('/cut-offs/{cut_off_id}', [CutOffController::class, 'destroy'])->whereNumber('cut_off_id')->middleware('can:cut_off,delete');
+
+    Route::get('/approver-setups', [ApproverSetupController::class, 'index'])->middleware('can:approver_setup,view');
+    Route::get('/approver-setups/{employee_id}/{application_type}', [ApproverSetupController::class, 'find'])->middleware('can:approver_setup,view');
+    Route::put('/approver-setups', [ApproverSetupController::class, 'update'])->middleware('can:approver_setup,update');
+
+    Route::get('/overtime-applications', [OvertimeApplicationController::class, 'index'])->middleware('can:overtime_application,view');
+    Route::get('/overtime-applications/{application_id}', [OvertimeApplicationController::class, 'find'])->whereNumber('application_id')->middleware('can:overtime_application,view');
+    Route::post('/overtime-applications', [OvertimeApplicationController::class, 'store'])->middleware('can:overtime_application,create');
+    Route::post('/overtime-applications/{application_id}/approve', [OvertimeApplicationController::class, 'approve'])->whereNumber('application_id')->middleware('can:overtime_application,update');
+    Route::post('/overtime-applications/{application_id}/disapprove', [OvertimeApplicationController::class, 'disapprove'])->whereNumber('application_id')->middleware('can:overtime_application,update');
+    Route::post('/overtime-applications/{application_id}/cancel', [OvertimeApplicationController::class, 'cancel'])->whereNumber('application_id')->middleware('can:overtime_application,update');
 });

@@ -57,7 +57,6 @@ records. Review/approval fields always come from the authenticated user.
 | POST | `/api/employee-attendance/process` | Process/reprocess an employee/date, Attendance update |
 | POST | `/api/employee-attendance/{attendance_id}/corrections` | Approve corrected timestamps, Attendance update |
 | POST | `/api/attendance-exceptions` | Approve a daily attendance exception, Attendance update |
-| POST | `/api/attendance-overtime/{overtime_id}/approve` | Approve an existing overtime application, Attendance update |
 | GET | `/api/attendance-cutoffs` | Cutoff summaries, self or Attendance view |
 | GET | `/api/attendance-cutoffs/{cutoff_id}` | One summary, self or Attendance view |
 | POST | `/api/attendance-cutoffs` | Generate/update an open cutoff, Attendance create |
@@ -202,13 +201,12 @@ including working dates without logs, before accumulating the summary.
   window. Because legacy unpaid breaks have no timestamps, their duration is
   conservatively subtracted from night duration first.
 
-An overtime application provides expected block context on a rest/unassigned
-date. Such rows link `overtime_application_id` rather than a regular schedule
-detail; a separate unique constraint prevents duplicate overtime rows. These
-rows have zero required regular duration and do not count as regular present
-days. Pending overtime can be rendered but receives no credits until approved.
-Rest-day taps without an application stay unmatched for review. Creating overtime
-applications uses the existing model; this module adds approval of existing ones.
+Overtime submission and approval now use the separate
+[OnlineApplication contract](../online-applications.md), with parent applications,
+multiple details, and reusable approval snapshots. The old single-period model
+and attendance-specific approval endpoint were removed. Actual rendered overtime
+and attendance credits remain attendance-processing concerns; submitting or
+approving an application does not calculate those values.
 
 Each work date counts once: any incomplete block makes an incomplete day;
 otherwise any present regular block makes a present day; otherwise an entirely

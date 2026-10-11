@@ -45,7 +45,7 @@ class MenuAccessTest extends TestCase
         Sanctum::actingAs($employee);
 
         $response = $this->getJson('/api/me/menus')->assertOk();
-        $this->assertSame(['dashboard', 'employee_database'], array_column($response->json('data'), 'code'));
+        $this->assertSame(['dashboard', 'employee_database', 'online_application'], array_column($response->json('data'), 'code'));
         $response->assertJsonPath('data.1.children.0.code', 'employee_201')
             ->assertJsonPath('data.1.children.0.actions.view', true)
             ->assertJsonPath('data.1.children.0.actions.create', false);
@@ -139,7 +139,7 @@ class MenuAccessTest extends TestCase
         $this->seed(MenuAccessSeeder::class);
 
         $this->assertFalse((bool) $admin->menus()->where('menus.id', $menu->id)->firstOrFail()->pivot->can_update);
-        $this->assertDatabaseCount('menus', 9);
+        $this->assertDatabaseCount('menus', 12);
     }
 
     public function test_menu_seeder_does_not_seed_access(): void
