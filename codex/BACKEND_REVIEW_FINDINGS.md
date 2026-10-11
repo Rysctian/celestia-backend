@@ -29,9 +29,10 @@ References: [EmployeeRequest](../app/Http/Requests/EmployeeRequest.php),
 References: [API routes](../routes/api.php), [User](../app/Models/User.php),
 [RoleRequest](../app/Http/Requests/RoleRequest.php), [RoleController](../app/Http/Controllers/RoleController.php).
 
-- Role and payroll DELETE routes pass `destroy` to menu middleware, while
+- Role DELETE routes pass `destroy` to menu middleware, while
   `User::hasMenuAccess` only accepts `view`, `create`, `update`, and `delete`.
   This action mismatch denies those requests.
+- The replaced Cut-Off DELETE route uses `delete`; the old payroll route is removed.
 - Role deletion validates and uses a body `id`, despite the route containing `{role_id}`.
 
 ## Schedule authorization and schema

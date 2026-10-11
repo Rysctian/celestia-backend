@@ -2,9 +2,9 @@
 
 use App\Http\Controllers\Attendance\EmployeeAttendanceController;
 use App\Http\Controllers\Auth\AuthenticationController;
+use App\Http\Controllers\CutOffController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\MenuController;
-use App\Http\Controllers\PayrollCutoffController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\Schedule\EmployeeScheduleController;
 use App\Http\Controllers\Schedule\ScheduleController;
@@ -57,9 +57,9 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::get('/employee-attendance', [EmployeeAttendanceController::class, 'showAttendance'])
         ->middleware('can:attendance,view');
 
-    Route::get('/payroll-cutoffs', [PayrollCutoffController::class, 'index'])->middleware('can:payroll_cutoff,view');
-    Route::get('/payroll-cutoffs/{payroll_cutoff_id}', [PayrollCutoffController::class, 'find'])->whereNumber('payroll_cutoff_id')->middleware('can:payroll_cutoff,view');
-    Route::post('/payroll-cutoffs', [PayrollCutoffController::class, 'store'])->middleware('can:payroll_cutoff,create');
-    Route::put('/payroll-cutoffs/{payroll_cutoff_id}', [PayrollCutoffController::class, 'update'])->whereNumber('payroll_cutoff_id')->middleware('can:payroll_cutoff,update');
-    Route::delete('/payroll-cutoffs/{payroll_cutoff_id}', [PayrollCutoffController::class, 'destroy'])->whereNumber('payroll_cutoff_id')->middleware('can:payroll_cutoff,destroy');
+    Route::get('/cut-offs', [CutOffController::class, 'index'])->middleware('can:cut_off,view');
+    Route::get('/cut-offs/{cut_off_id}', [CutOffController::class, 'find'])->whereNumber('cut_off_id')->middleware('can:cut_off,view');
+    Route::post('/cut-offs', [CutOffController::class, 'store'])->middleware('can:cut_off,create');
+    Route::put('/cut-offs/{cut_off_id}', [CutOffController::class, 'update'])->whereNumber('cut_off_id')->middleware('can:cut_off,update');
+    Route::delete('/cut-offs/{cut_off_id}', [CutOffController::class, 'destroy'])->whereNumber('cut_off_id')->middleware('can:cut_off,delete');
 });

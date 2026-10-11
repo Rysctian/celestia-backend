@@ -10,14 +10,14 @@ code with known issues. All implementation links are relative to this document.
 | Location | Put this responsibility here | Reference |
 | --- | --- | --- |
 | `routes/api.php` | Explicit routes, authentication groups, menu permissions | [API routes](../routes/api.php) |
-| `app/Http/Controllers/` | Input handoff, operation delegation, HTTP responses | [PayrollCutoffController](../app/Http/Controllers/PayrollCutoffController.php) |
+| `app/Http/Controllers/` | Input handoff, operation delegation, HTTP responses | [CutOffController](../app/Http/Controllers/CutOffController.php) |
 | `app/Http/Requests/` | FormRequest field rules and request authorization | [EmployeeScheduleRequest](../app/Http/Requests/EmployeeScheduleRequest.php) |
-| `app/Services/` | Business checks, related writes, orchestration, output data | [PayrollCutoffService](../app/Services/PayrollCutoffService.php) |
+| `app/Services/` | Business checks, related writes, orchestration, output data | [CutOffService](../app/Services/CutOffService.php) |
 | `app/Queries/` | Traits exposing reusable Eloquent filtering scopes | [ScheduleQuery](../app/Queries/ScheduleQuery.php) |
 | `app/Models/` | Fillable fields, casts, relationships, focused model scopes | [EmployeeSchedule](../app/Models/EmployeeSchedule.php) |
 | `app/Helpers/` | Focused static utilities reused by services | [DateHelper](../app/Helpers/DateHelper.php) |
 | `app/Http/Middleware/`, `app/Providers/` | Access checks, aliases, gates, framework setup | [EnsureMenuAccess](../app/Http/Middleware/EnsureMenuAccess.php) |
-| `database/`, `tests/Feature/` | Schema, factories, seed data, behavior verification | [PayrollCutoffTest](../tests/Feature/PayrollCutoffTest.php) |
+| `database/`, `tests/Feature/` | Schema, factories, seed data, behavior verification | [CutOffTest](../tests/Feature/CutOffTest.php) |
 
 Keep folders shallow. Most services, models, requests, and query traits live
 straight under their type folder; follow existing domain subfolders when relevant.
@@ -32,7 +32,7 @@ avoid introducing repository, interface, DTO, or response-wrapper layers.
 - Match namespaces to paths under the `App\` mapping in [composer.json](../composer.json).
   Use PascalCase domain classes with `Controller`, `Request`, `Service`, `Query`,
   `Factory`, or `Seeder` suffixes.
-- Use camelCase methods such as `findById`, `createPayrollCutoff`, and `updateAssignment`.
+- Use camelCase methods such as `findById`, `createCutOff`, and `updateAssignment`.
   Controller actions commonly use `index`, `find`, `store`, `update`, and `destroy`;
   follow `show` and route model binding where the module already uses them.
 - Use snake_case for database fields, request keys, and route placeholders;
@@ -53,14 +53,14 @@ Pass write payloads through `$request->validated()`. Supply the authenticated ac
 separately when needed, as [EmployeeScheduleController](../app/Http/Controllers/Schedule/EmployeeScheduleController.php)
 passes `$request->user()->id` to assignment creation.
 
-Actual action from `PayrollCutoffController`:
+Actual action from `CutOffController`:
 
 ```php
-public function store(PayrollCutoffRequest $request)
+public function store(CutOffRequest $request)
 {
-    $payrollCutoff = $this->payrollCutoffService->createPayrollCutoff($request->validated());
+    $cutOff = $this->cutOffService->createCutOff($request->validated());
 
-    return response()->json(['message' => 'Payroll cut-off created successfully.', 'data' => $payrollCutoff], 201);
+    return response()->json(['message' => 'Cut-off created successfully.', 'data' => $cutOff], 201);
 }
 ```
 
@@ -77,7 +77,7 @@ public function store(PayrollCutoffRequest $request)
 
 - Put field validation in FormRequests using arrays of rules: `exists`, `distinct`,
   `Rule::in`, date formats, and wildcard rules for nested data. Limit allowed nested
-  keys where needed, as [PayrollCutoffRequest](../app/Http/Requests/PayrollCutoffRequest.php) does.
+  keys where needed, as [CutOffRequest](../app/Http/Requests/CutOffRequest.php) does.
 - For requests shared across operations, dispatch by HTTP method into small rule
   methods, as `EmployeeScheduleRequest` does. Cover every supported write method;
   single-operation requests can return their rules directly.
@@ -99,7 +99,7 @@ public function store(PayrollCutoffRequest $request)
   Return models, collections, or shaped arrays; let controllers build HTTP responses.
 - Wrap related writes in `DB::transaction`, following payroll/schedule services.
   Separate child payloads from parent attributes and write children through relationships.
-- Preserve update semantics. Existing release/detail replacement uses relationship
+- Preserve update semantics. Existing period/detail replacement uses relationship
   `delete()` and `createMany()` inside the transaction.
 - Use `lockForUpdate()` inside transactions where competing writes require it.
   Follow [EmployeeScheduleService](../app/Services/EmployeeScheduleService.php) for stable
@@ -110,19 +110,19 @@ public function store(PayrollCutoffRequest $request)
   use `values()->all()` when sequential indices are required, as
   [MenuAccessService](../app/Services/MenuAccessService.php) does.
 
-Actual method from `PayrollCutoffService`:
+Actual method from `CutOffService`:
 
 ```php
-public function createPayrollCutoff(array $data)
+public function createCutOff(array $data)
 {
     return DB::transaction(function () use ($data) {
-        $releases = $data['releases'];
-        unset($data['releases']);
+        $periods = $this->preparePeriods($data);
+        unset($data['periods']);
 
-        $payrollCutoff = PayrollCutoff::create($data);
-        $payrollCutoff->releases()->createMany($releases);
+        $cutOff = CutOff::create($data);
+        $cutOff->periods()->createMany($periods);
 
-        return $payrollCutoff->load('releases');
+        return $cutOff->load('periods');
     });
 }
 ```

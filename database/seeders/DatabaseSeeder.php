@@ -43,7 +43,7 @@ class DatabaseSeeder extends Seeder
             EmployeeLogSeeder::class,
             EmployeeAttendanceSeeder::class,
             EmployeeAttendanceLogSeeder::class,
-            PayrollCutoffSeeder::class,
+            CutOffSeeder::class,
         ]);
     }
 }
