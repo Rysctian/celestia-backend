@@ -2,6 +2,8 @@
 
 namespace App\Queries;
 
+use Illuminate\Support\Arr;
+
 trait ScheduleQuery
 {
     public function scopeFilterSearch($query, $request)
@@ -26,7 +28,8 @@ trait ScheduleQuery
             })
             ->when($request->name, fn ($query, $name) => $query->where('name', $name))
             ->when($request->timezone, fn ($query, $timezone) => $query->where('timezone', $timezone))
-            ->when($request->filled('is_active'), fn ($query) => $query->where('is_active', $request->boolean('is_active')))
+            ->when($request->filled('is_active'), fn ($query) => $query->whereIn('is_active',
+                array_map(fn ($value) => filter_var($value, FILTER_VALIDATE_BOOLEAN), Arr::wrap($request->input('is_active')))))
             ->when($request->date_from, fn ($query, $dateFrom) => $query->whereDate('created_at', '>=', $dateFrom))
             ->when($request->date_to, fn ($query, $dateTo) => $query->whereDate('created_at', '<=', $dateTo))
             ->orderBy($sortBy, $sortOrder)

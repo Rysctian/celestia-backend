@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Employee;
+use App\Models\EmployeeSchedule;
 use App\Models\Role;
 use App\Models\Schedule;
 use App\Models\User;
@@ -133,5 +134,69 @@ class FilterSearchTest extends TestCase
         }
 
         $this->getJson('/api/roles?search=Schedule&code=admin')->assertOk()->assertJsonCount(0, 'data');
+    }
+
+    public function test_employee_checkbox_filters_match_any_selection_and_combine_fields(): void
+    {
+        $first = Employee::factory()->create(['first_name' => 'Checkbox', 'type' => 'regular', 'gender' => 'Male', 'civil_status' => 'Single']);
+        $second = Employee::factory()->create(['first_name' => 'Checkbox', 'type' => 'probationary', 'gender' => 'Female', 'civil_status' => 'Married']);
+        Employee::factory()->create(['first_name' => 'Checkbox', 'type' => 'contractual', 'gender' => 'Female', 'civil_status' => 'Single']);
+        Employee::factory()->create(['first_name' => 'Checkbox', 'type' => 'regular', 'gender' => 'Male', 'civil_status' => 'Widowed']);
+
+        $query = ['search' => 'Checkbox', 'type' => ['regular', 'probationary'], 'gender' => ['Male', 'Female'],
+            'civil_status' => ['Single', 'Married'], 'sort_by' => 'id', 'sort_order' => 'asc'];
+        $this->getJson('/api/employees?'.http_build_query($query))->assertOk()->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.id', $first->id)->assertJsonPath('data.1.id', $second->id);
+        $this->getJson('/api/employees?'.http_build_query([...$query, 'limit' => 1, 'offset' => 1]))
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $second->id);
+        $this->getJson('/api/employees?search=Checkbox&type=regular&gender=Male&civil_status=Single')
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $first->id);
+        $this->getJson('/api/employees?'.http_build_query(['type' => [['nested']]]))
+            ->assertUnprocessable()->assertJsonValidationErrors('type.0');
+    }
+
+    public function test_user_role_checkbox_filter_includes_each_selected_role(): void
+    {
+        $roles = Role::factory()->count(2)->create();
+        $first = $this->factory(User::class)->withRole($roles[0])->create();
+        $second = $this->factory(User::class)->withRole($roles[1])->create();
+        $this->factory(User::class)->withRole(Role::factory()->create())->create();
+
+        $query = ['role_id' => $roles->pluck('id')->all(), 'sort_by' => 'id', 'sort_order' => 'asc'];
+        $this->getJson('/api/users?'.http_build_query($query))->assertOk()->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.id', $first->id)->assertJsonPath('data.1.id', $second->id);
+    }
+
+    public function test_schedule_status_checkbox_filter_handles_false_and_both_states(): void
+    {
+        $active = Schedule::factory()->create(['timezone' => 'Asia/Singapore', 'is_active' => true]);
+        $inactive = Schedule::factory()->create(['timezone' => 'Asia/Singapore', 'is_active' => false]);
+        Schedule::factory()->create(['timezone' => 'UTC', 'is_active' => false]);
+
+        $query = ['timezone' => 'Asia/Singapore', 'is_active' => ['true', 'false'], 'sort_by' => 'id', 'sort_order' => 'asc'];
+        $this->getJson('/api/schedules?'.http_build_query($query))->assertOk()->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.id', $active->id)->assertJsonPath('data.1.id', $inactive->id);
+        $this->getJson('/api/schedules?'.http_build_query([...$query, 'is_active' => ['false']]))
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $inactive->id);
+    }
+
+    public function test_assignment_checkbox_filters_combine_schedules_and_current_states(): void
+    {
+        $this->travelTo(now()->setDate(2026, 10, 15)->startOfDay());
+        $employee = Employee::factory()->create();
+        $current = EmployeeSchedule::factory()->create(['employee_id' => $employee->employee_id, 'effective_from' => '2026-10-01', 'effective_to' => null]);
+        $history = EmployeeSchedule::factory()->create(['employee_id' => $employee->employee_id, 'effective_from' => '2026-09-01', 'effective_to' => '2026-09-30']);
+        EmployeeSchedule::factory()->create(['employee_id' => $employee->employee_id, 'effective_from' => '2026-11-01', 'effective_to' => null]);
+        $endpoint = "/api/employees/{$employee->employee_id}/schedules";
+        $query = ['schedule_id' => [$current->schedule_id, $history->schedule_id], 'is_current' => ['true', 'false'], 'sort_by' => 'id', 'sort_order' => 'asc'];
+
+        $this->getJson($endpoint.'?'.http_build_query($query))->assertOk()->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.id', $current->id)->assertJsonPath('data.1.id', $history->id);
+        $this->getJson($endpoint.'?'.http_build_query([...$query, 'is_current' => ['false']]))
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $history->id);
+        $this->getJson($endpoint.'?'.http_build_query([...$query, 'is_current' => ['true']]))
+            ->assertOk()->assertJsonCount(1, 'data')->assertJsonPath('data.0.id', $current->id);
+        $this->getJson($endpoint.'?is_current=')->assertOk()->assertJsonCount(3, 'data');
+        $this->getJson($endpoint.'?is_current=false')->assertOk()->assertJsonCount(2, 'data');
     }
 }

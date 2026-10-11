@@ -33,9 +33,12 @@ class EmployeeRequest extends FormRequest
     {
         return [
             'search' => ['nullable', 'string'],
-            'type' => ['nullable', 'string'],
-            'gender' => ['nullable', 'string'],
-            'civil_status' => ['nullable', 'string'],
+            'type' => ['nullable', is_array($this->input('type')) ? 'array' : 'string'],
+            'type.*' => ['required', 'string', 'max:255'],
+            'gender' => ['nullable', is_array($this->input('gender')) ? 'array' : 'string'],
+            'gender.*' => ['required', 'string', 'max:255'],
+            'civil_status' => ['nullable', is_array($this->input('civil_status')) ? 'array' : 'string'],
+            'civil_status.*' => ['required', 'string', 'max:255'],
             'employee_id' => ['nullable', 'string'],
             'date_from' => ['nullable', 'date'],
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],

@@ -2,6 +2,8 @@
 
 namespace App\Queries;
 
+use Illuminate\Support\Arr;
+
 trait EmployeeScheduleQuery
 {
     public function scopeFilterSearch($query, $request)
@@ -12,13 +14,16 @@ trait EmployeeScheduleQuery
         $limit = min(max((int) ($request->limit ?? 15), 1), 100);
         $offset = max((int) ($request->offset ?? 0), 0);
         $today = now()->toDateString();
+        $currentStates = array_values(array_unique(array_map(
+            fn ($value) => filter_var($value, FILTER_VALIDATE_BOOLEAN),
+            Arr::wrap($request->input('is_current')),
+        )));
 
         return $query
-            ->when($request->search, fn ($q, $search) => $q->whereHas('schedule', fn ($schedule) =>
-                $schedule->where('name', 'like', "%{$search}%")))
-            ->when($request->schedule_id, fn ($q, $id) => $q->where('schedule_id', $id))
-            ->when($request->filled('is_current'), function ($q) use ($request, $today) {
-                if ($request->boolean('is_current')) {
+            ->when($request->search, fn ($q, $search) => $q->whereHas('schedule', fn ($schedule) => $schedule->where('name', 'like', "%{$search}%")))
+            ->when($request->schedule_id, fn ($q, $id) => $q->whereIn('schedule_id', Arr::wrap($id)))
+            ->when($request->filled('is_current') && count($currentStates) === 1, function ($q) use ($currentStates, $today) {
+                if ($currentStates[0]) {
                     $q->whereDate('effective_from', '<=', $today)
                         ->where(fn ($end) => $end->whereNull('effective_to')->orWhereDate('effective_to', '>=', $today));
                 } else {

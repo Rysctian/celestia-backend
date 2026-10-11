@@ -1,3 +1,46 @@
+## Celestia backend
+
+The backend runs on PHP 8.5 and Laravel 13. The tested PHP patch is recorded in
+`.php-version`; exact Composer dependency versions are recorded in `composer.lock`.
+Use `composer install` to reproduce the dependency set.
+
+### Local development on Windows
+
+PHP 8.5.11 and Composer 2.10.3 are available in `C:\xampp\php\php85` on this machine.
+Open a new terminal after changing Windows PATH. For an existing PowerShell session:
+
+```powershell
+$env:Path = 'C:\xampp\php\php85;' + $env:Path
+php --version
+composer --version
+```
+
+From the `backend` directory, with the database configured in `.env` running:
+
+```powershell
+composer install
+php artisan serve --host=127.0.0.1 --port=8000
+```
+
+The frontend's development proxy targets `http://localhost:8000`. The backend's
+health endpoint is `http://127.0.0.1:8000/up`.
+
+PHP must have the Laravel-required extensions plus `pdo_mysql` for the local
+database and `pdo_sqlite` for the test suite. Enable `zip` for Composer downloads.
+The local database currently uses port 3307; check `.env` for your own settings.
+XAMPP Apache uses its separate PHP runtime; run this backend through Artisan to
+use PHP 8.5.
+
+Run the tests with:
+
+```powershell
+composer test
+```
+
+The test configuration uses an in-memory SQLite database.
+See [the upgrade verification report](docs/runtime-upgrade.md) for results and
+existing test failures.
+
 <p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
 
 <p align="center">

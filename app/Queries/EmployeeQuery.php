@@ -2,6 +2,8 @@
 
 namespace App\Queries;
 
+use Illuminate\Support\Arr;
+
 trait EmployeeQuery
 {
     public function scopeFilterSearch($query, $request)
@@ -27,9 +29,9 @@ trait EmployeeQuery
                         ->orWhere('personal_email', 'like', "%{$search}%");
                 });
             })
-            ->when($request->type, fn ($query, $type) => $query->where('type', $type))
-            ->when($request->gender, fn ($query, $gender) => $query->where('gender', $gender))
-            ->when($request->civil_status, fn ($query, $civilStatus) => $query->where('civil_status', $civilStatus))
+            ->when($request->type, fn ($query, $type) => $query->whereIn('type', Arr::wrap($type)))
+            ->when($request->gender, fn ($query, $gender) => $query->whereIn('gender', Arr::wrap($gender)))
+            ->when($request->civil_status, fn ($query, $civilStatus) => $query->whereIn('civil_status', Arr::wrap($civilStatus)))
             ->when($request->employee_id, fn ($query, $employeeId) => $query->where('employee_id', $employeeId))
             ->when($request->date_from, fn ($query, $dateFrom) => $query->whereDate('created_at', '>=', $dateFrom))
             ->when($request->date_to, fn ($query, $dateTo) => $query->whereDate('created_at', '<=', $dateTo))
