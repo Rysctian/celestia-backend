@@ -22,6 +22,7 @@ class Employee extends Model
         'birth_date',
         'birth_place',
         'gender',
+        'civil_status',
         'personal_email',
         'mobile_no',
         'telephone_no',

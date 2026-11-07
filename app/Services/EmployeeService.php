@@ -18,7 +18,9 @@ class EmployeeService
 
     public function findById(string $empid)
     {
-        return Employee::where('employee_id', $empid)->first();
+        return Employee::with(['user.role'])
+            ->where('employee_id', $empid)
+            ->first();
     }
 
     public function createEmployee(array $data)
