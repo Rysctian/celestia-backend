@@ -10,6 +10,9 @@ x-app: &app
   env_file: .env.docker
   restart: unless-stopped
   volumes:
+    - .:/var/www/html
+    - /var/www/html/vendor
+    - /var/www/html/bootstrap/cache
     - storage:/var/www/html/storage
   depends_on:
     db:

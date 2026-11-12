@@ -2,6 +2,7 @@
 set -e
 
 cd /var/www/html
+rm -f bootstrap/cache/*.php
 
 # Only the php-fpm ("app") container prepares the application. Queue/scheduler
 # and one-off commands (`docker compose run app php artisan ...`) skip setup.
@@ -36,10 +37,17 @@ if [ "$is_fpm" = "true" ] && [ "${RUN_SETUP:-true}" = "true" ]; then
     # Idempotent: seeds the menu catalog and role grants without touching edits.
     php artisan db:seed --class=MenuAccessSeeder --force
 
-    php artisan config:cache
-    php artisan route:cache
-    php artisan view:cache
-    php artisan event:cache
+    if [ "${APP_ENV}" != "production" ] || [ "${APP_DEBUG}" = "true" ]; then
+        php artisan config:clear || true
+        php artisan route:clear || true
+        php artisan view:clear || true
+        php artisan event:clear || true
+    else
+        php artisan config:cache
+        php artisan route:cache
+        php artisan view:cache
+        php artisan event:cache
+    fi
 fi
 
 exec "$@"

@@ -93,7 +93,13 @@ class OvertimeApplicationService
     {
         $application = OvertimeApplication::findOrFail($id);
 
-        return $this->approvals->decide($application, $actor->employee_id, $decision, $remarks)->load(['employee:id,employee_id,first_name,last_name', 'details', 'approvals.approver:id,employee_id,first_name,last_name']);
+        return $this->approvals->decide(
+            $application,
+            $actor->employee_id,
+            $decision,
+            $remarks,
+            $this->isAdministrator($actor),
+        )->load(['employee:id,employee_id,first_name,last_name', 'details', 'approvals.approver:id,employee_id,first_name,last_name']);
     }
 
     public function cancel(int $id, User $actor, ?string $remarks = null)

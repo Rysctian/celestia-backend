@@ -346,6 +346,37 @@ class OvertimeApplicationTest extends TestCase
         $this->assertSame('pending', OvertimeApplication::findOrFail($overtimeId)->status);
         Schema::dropIfExists('test_leave_applications');
     }
+
+    public function test_admin_can_disapprove_pending_and_approved_overtime_applications(): void
+    {
+        $pendingId = $this->submit();
+        $approvedId = $this->submit();
+
+        Sanctum::actingAs($this->firstApprover);
+        $this->postJson("/api/overtime-applications/$approvedId/approve")->assertOk();
+        Sanctum::actingAs($this->secondApprover);
+        $this->postJson("/api/overtime-applications/$approvedId/approve")->assertOk()->assertJsonPath('data.status', 'approved');
+
+        $admin = $this->user('admin');
+        Sanctum::actingAs($admin);
+
+        // Admin cannot bypass approval chain to approve someone else's pending item.
+        $this->postJson("/api/overtime-applications/$pendingId/approve")->assertForbidden();
+
+        // Admin can disapprove any pending or approved overtime application.
+        $this->postJson("/api/overtime-applications/$pendingId/disapprove", ['remarks' => 'Budget freeze.'])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'disapproved')
+            ->assertJsonPath('data.approvals.0.status', 'disapproved')
+            ->assertJsonPath('data.approvals.0.remarks', 'Budget freeze.');
+
+        $this->postJson("/api/overtime-applications/$approvedId/disapprove", ['remarks' => 'Revoked by admin.'])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'disapproved');
+
+        // Already disapproved application rejects repeated disapproval.
+        $this->postJson("/api/overtime-applications/$pendingId/disapprove")->assertUnprocessable();
+    }
 }
 
 class TestLeaveApplication extends Model

@@ -43,17 +43,33 @@ class ApplicationApprovalService
         }, 3);
     }
 
-    public function decide(Model $application, string $actorEmployeeId, string $decision, ?string $remarks = null)
+    public function decide(Model $application, ?string $actorEmployeeId, string $decision, ?string $remarks = null, bool $allowAdminOverride = false)
     {
-        return DB::transaction(function () use ($application, $actorEmployeeId, $decision, $remarks) {
+        return DB::transaction(function () use ($application, $actorEmployeeId, $decision, $remarks, $allowAdminOverride) {
             $application = $application->newQuery()->lockForUpdate()->findOrFail($application->getKey());
-            $this->ensurePending($application);
             if (! in_array($decision, ['approved', 'disapproved'], true)) {
                 throw ValidationException::withMessages(['status' => 'Choose approved or disapproved.']);
             }
             $approvals = $this->approvals($application)->orderBy('sequence')->lockForUpdate()->get();
             $current = $approvals->firstWhere('status', 'pending');
-            abort_unless($current && $current->approver_id === $actorEmployeeId, 403, 'Only the current approver can act.');
+
+            if ($allowAdminOverride && $decision === 'disapproved') {
+                if ($application->status === 'disapproved') {
+                    throw ValidationException::withMessages(['status' => 'This application is already disapproved.']);
+                }
+                if ($application->status === 'cancelled') {
+                    throw ValidationException::withMessages(['status' => 'Cancelled applications cannot be disapproved.']);
+                }
+                if ($current) {
+                    $current->update(['status' => 'disapproved', 'remarks' => $remarks, 'acted_at' => now()]);
+                }
+                $application->update(['status' => 'disapproved']);
+
+                return $application;
+            }
+
+            $this->ensurePending($application);
+            abort_unless($actorEmployeeId && $current && $current->approver_id === $actorEmployeeId, 403, 'Only the current approver can act.');
             $previous = $approvals->where('sequence', '<', $current->sequence);
             if ($previous->contains(fn ($approval) => $approval->status !== 'approved')) {
                 throw ValidationException::withMessages(['approvals' => 'Previous sequences must all be approved.']);

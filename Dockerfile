@@ -1,5 +1,3 @@
-# syntax=docker/dockerfile:1
-
 # ---- Base: PHP 8.5 FPM with the extensions Celestia needs ------------------
 # pdo_mysql -> MySQL (runtime DB), bcmath/pcntl -> Laravel + queue worker
 # zip is needed by Composer. pdo_sqlite is already bundled for `artisan test`.
