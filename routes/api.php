@@ -19,7 +19,7 @@ Route::post('/login', [AuthenticationController::class, 'store'])
     ->withoutMiddleware(EnsureFrontendRequestsAreStateful::class)
     ->name('login');
 
-if (app()->environment('local')) {
+if (app()->environment(['local', 'testing'])) {
     Route::post('/dev/token', [AuthenticationController::class, 'token'])
         ->withoutMiddleware(EnsureFrontendRequestsAreStateful::class);
 }

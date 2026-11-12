@@ -17,7 +17,9 @@ class ApproverSetupRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'employee_id' => ['required', 'string', 'exists:employees,employee_id'],
+            'employee_id' => ['required_without:employee_ids', 'string', 'exists:employees,employee_id'],
+            'employee_ids' => ['required_without:employee_id', 'array', 'min:1', 'max:500'],
+            'employee_ids.*' => ['required', 'string', 'exists:employees,employee_id'],
             'application_type' => ['required', Rule::in(ApproverSetup::APPLICATION_TYPES)],
             'approvers' => ['required', 'array', 'list', 'min:1', 'max:100'],
             'approvers.*' => ['required', 'array:approver_id,sequence'],

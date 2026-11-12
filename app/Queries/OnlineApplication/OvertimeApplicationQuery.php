@@ -14,7 +14,11 @@ trait OvertimeApplicationQuery
             ->when($request->filled('employee_id'), fn ($query) => $query->where('employee_id', $request->employee_id))
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->status))
             ->when($request->search, fn ($query, $search) => $query->where(fn ($query) => $query
-                ->where('reason', 'like', "%{$search}%")->orWhere('employee_id', 'like', "%{$search}%")))
+                ->where('reason', 'like', "%{$search}%")
+                ->orWhere('employee_id', 'like', "%{$search}%")
+                ->orWhereHas('employee', fn ($q) => $q->where('first_name', 'like', "%{$search}%")->orWhere('last_name', 'like', "%{$search}%"))
+                ->orWhereHas('approvals.approver', fn ($q) => $q->where('first_name', 'like', "%{$search}%")->orWhere('last_name', 'like', "%{$search}%"))
+            ))
             ->when($request->date_from, fn ($query, $date) => $query->whereDate('submitted_at', '>=', $date))
             ->when($request->date_to, fn ($query, $date) => $query->whereDate('submitted_at', '<=', $date))
             ->orderBy($sortBy, $direction)

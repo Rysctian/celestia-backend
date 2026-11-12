@@ -14,7 +14,14 @@ class OvertimeApplicationRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'employee_id' => ['sometimes', 'required', 'string', 'exists:employees,employee_id'],
+            'employee_id' => ['sometimes', 'nullable', 'string', 'exists:employees,employee_id'],
+            'employee_ids' => ['sometimes', 'array'],
+            'employee_ids.*' => ['string', 'exists:employees,employee_id'],
+            'allow_approver' => ['sometimes', 'boolean'],
+            'auto_approved' => ['sometimes', 'boolean'],
+            'type' => ['sometimes', 'nullable', 'string', 'max:100'],
+            'department' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'office' => ['sometimes', 'nullable', 'string', 'max:255'],
             'reason' => ['required', 'string', 'max:5000'],
             'status' => ['prohibited'],
             'submitted_at' => ['prohibited'],

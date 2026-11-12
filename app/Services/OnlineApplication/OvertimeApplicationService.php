@@ -20,33 +20,72 @@ class OvertimeApplicationService
 
     public function findAll(Request $request, User $actor)
     {
-        return $this->visibleApplications($actor)->with(['details', 'approvals'])->filterSearch($request)->get();
+        return $this->visibleApplications($actor)->with(['employee:id,employee_id,first_name,last_name', 'details', 'approvals.approver:id,employee_id,first_name,last_name'])->filterSearch($request)->get();
     }
 
     public function findById(int $id, User $actor)
     {
-        return $this->visibleApplications($actor)->with(['details', 'approvals'])->findOrFail($id);
+        return $this->visibleApplications($actor)->with(['employee:id,employee_id,first_name,last_name', 'details', 'approvals.approver:id,employee_id,first_name,last_name'])->findOrFail($id);
     }
 
     public function submit(array $data, User $actor)
     {
-        $employeeId = $actor->employee_id;
-        abort_unless($employeeId && ($data['employee_id'] ?? $employeeId) === $employeeId, 403, 'Submit only your own overtime.');
+        $actorEmployeeId = $actor->employee_id;
+        $isAdmin = $this->isAdministrator($actor);
 
-        return DB::transaction(function () use ($data, $employeeId) {
-            // Match schedule assignment's template-before-employee lock order.
-            $scheduleIds = EmployeeSchedule::where('employee_id', $employeeId)->pluck('schedule_id');
-            $schedules = Schedule::with('details')->whereIn('id', $scheduleIds)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
-            Employee::where('employee_id', $employeeId)->lockForUpdate()->firstOrFail();
-            $assignments = EmployeeSchedule::where('employee_id', $employeeId)->orderByDesc('effective_from')->lockForUpdate()->get();
-            $details = $this->prepareDetails($data['details'], $assignments, $schedules);
-            $application = OvertimeApplication::create([
-                'employee_id' => $employeeId, 'reason' => $data['reason'], 'status' => 'pending', 'submitted_at' => now(),
-            ]);
-            $application->details()->createMany($details);
-            $this->approvals->snapshot($application);
+        $employeeIds = [];
+        if (! empty($data['employee_ids']) && is_array($data['employee_ids'])) {
+            $employeeIds = array_values(array_unique(array_filter($data['employee_ids'])));
+        } elseif (! empty($data['employee_id'])) {
+            $employeeIds = [$data['employee_id']];
+        } elseif ($actorEmployeeId) {
+            $employeeIds = [$actorEmployeeId];
+        }
 
-            return $application->load(['details', 'approvals']);
+        abort_if(empty($employeeIds), 422, 'Select at least one employee for the overtime application.');
+
+        if (! $isAdmin) {
+            foreach ($employeeIds as $id) {
+                abort_unless($actorEmployeeId && $id === $actorEmployeeId, 403, 'Submit only your own overtime.');
+            }
+        }
+
+        $allowApprover = isset($data['allow_approver'])
+            ? (bool) $data['allow_approver']
+            : (! (bool) ($data['auto_approved'] ?? false));
+        $status = $allowApprover ? 'pending' : 'approved';
+
+        return DB::transaction(function () use ($data, $employeeIds, $allowApprover, $status) {
+            $applications = [];
+
+            foreach ($employeeIds as $employeeId) {
+                // Match schedule assignment's template-before-employee lock order.
+                $scheduleIds = EmployeeSchedule::where('employee_id', $employeeId)->pluck('schedule_id');
+                $schedules = Schedule::with('details')->whereIn('id', $scheduleIds)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+                Employee::where('employee_id', $employeeId)->lockForUpdate()->firstOrFail();
+                $assignments = EmployeeSchedule::where('employee_id', $employeeId)->orderByDesc('effective_from')->lockForUpdate()->get();
+                $details = $this->prepareDetails($data['details'], $assignments, $schedules);
+
+                $application = OvertimeApplication::create([
+                    'employee_id' => $employeeId,
+                    'reason' => $data['reason'],
+                    'status' => $status,
+                    'submitted_at' => now(),
+                ]);
+                $application->details()->createMany($details);
+
+                if ($allowApprover) {
+                    $this->approvals->snapshot($application);
+                }
+
+                $applications[] = $application->load([
+                    'employee:id,employee_id,first_name,last_name',
+                    'details',
+                    'approvals.approver:id,employee_id,first_name,last_name',
+                ]);
+            }
+
+            return count($applications) === 1 ? $applications[0] : $applications;
         }, 3);
     }
 
@@ -54,18 +93,29 @@ class OvertimeApplicationService
     {
         $application = OvertimeApplication::findOrFail($id);
 
-        return $this->approvals->decide($application, $actor->employee_id, $decision, $remarks)->load(['details', 'approvals']);
+        return $this->approvals->decide($application, $actor->employee_id, $decision, $remarks)->load(['employee:id,employee_id,first_name,last_name', 'details', 'approvals.approver:id,employee_id,first_name,last_name']);
     }
 
     public function cancel(int $id, User $actor, ?string $remarks = null)
     {
         $application = OvertimeApplication::findOrFail($id);
 
-        return $this->approvals->cancel($application, $actor->employee_id, $remarks)->load(['details', 'approvals']);
+        return $this->approvals->cancel($application, $actor->employee_id, $remarks)->load(['employee:id,employee_id,first_name,last_name', 'details', 'approvals.approver:id,employee_id,first_name,last_name']);
+    }
+
+    private function isAdministrator(User $actor): bool
+    {
+        return ($actor->role && $actor->role->code === 'admin')
+            || $actor->hasMenuAccess('user_management', 'view')
+            || $actor->hasMenuAccess('approver_setup', 'view');
     }
 
     private function visibleApplications(User $actor)
     {
+        if ($this->isAdministrator($actor)) {
+            return OvertimeApplication::query();
+        }
+
         return OvertimeApplication::where(fn ($query) => $query->where('employee_id', $actor->employee_id)
             ->orWhereHas('approvals', fn ($query) => $query->where('approver_id', $actor->employee_id)));
     }

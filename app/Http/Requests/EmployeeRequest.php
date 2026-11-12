@@ -4,6 +4,7 @@ namespace App\Http\Requests;
 
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class EmployeeRequest extends FormRequest
 {
@@ -61,7 +62,7 @@ class EmployeeRequest extends FormRequest
             'birth_place' => ['required', 'nullable', 'string', 'max:255'],
             'gender' => ['required', 'nullable', 'string', 'max:20'],
             'civil_status' => ['required', 'nullable', 'string', 'max:30'],
-            'personal_email' => ['required', 'nullable', 'email'],
+            'personal_email' => ['required', 'nullable', 'email',  Rule::unique('users', 'email'),],
             'mobile_no' => ['required', 'nullable', 'string', 'max:30'],
             'telephone_no' => ['required', 'nullable', 'string', 'max:30'],
         ];
