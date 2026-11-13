@@ -27,6 +27,7 @@ class ScheduleRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:100'],
             'timezone' => ['nullable', 'string', 'timezone', 'max:50'],
+            'attendance_policy_id' => ['nullable', 'integer', 'exists:attendance_policies,id'],
             'is_active' => ['sometimes', 'boolean'],
             'details' => ['required', 'array', 'min:7'],
             'details.*' => ['required', 'array:day_of_week,is_rest_day,start_time,end_time,unpaid_break_minutes'],

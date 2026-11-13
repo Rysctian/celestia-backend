@@ -20,6 +20,7 @@ class MenuSeeder extends Seeder
             ['code' => 'user_management',   'title' => 'User Management',   'path' => '/user-management',     'parent' => 'administration',     'sort_order' => 0],
             ['code' => 'cut_off',           'title' => 'Cut-Off',           'path' => '/cut-offs',           'parent' => 'administration',     'sort_order' => 1],
             ['code' => 'approver_setup',    'title' => 'Approver Setup',    'path' => '/approver-setups',    'parent' => 'administration',     'sort_order' => 2],
+            ['code' => 'attendance_policy', 'title' => 'Attendance Policy', 'path' => '/attendance-policies', 'parent' => 'administration',    'sort_order' => 3],
             ['code' => 'online_application', 'title' => 'Online Applications', 'path' => null,                'parent' => null,                 'sort_order' => 4],
             ['code' => 'overtime_application', 'title' => 'Overtime Application', 'path' => '/overtime-applications', 'parent' => 'online_application', 'sort_order' => 0],
         ];

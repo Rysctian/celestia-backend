@@ -9,7 +9,8 @@ use Carbon\Carbon;
 class EmployeeProcessLogsService
 {
     public function __construct(
-        private AttendanceCalculator $calculator
+        private AttendanceCalculator $calculator,
+        private AttendancePolicyService $policyService
     ) {}
 
     public function process(string $employeeId, string $date): array
@@ -17,6 +18,7 @@ class EmployeeProcessLogsService
         $day = Carbon::parse($date)->dayOfWeekIso;
 
         $employeeSchedule = EmployeeSchedule::with([
+            'schedule.attendancePolicy',
             'schedule.details' => fn ($query) => $query
                 ->where('day_of_week', $day)
                 ->orderBy('start_time'),
@@ -59,10 +61,12 @@ class EmployeeProcessLogsService
             ];
         }
 
+        $policy = $this->policyService->resolveForSchedule($employeeSchedule->schedule);
+
         $result = $details->where('is_rest_day', false)->values()
             ->map(fn ($detail) => [
                 'date' => $date,
-                ...$this->calculator->calculate($date, collect([$detail]), $logs),
+                ...$this->calculator->calculate($date, collect([$detail]), $logs, $policy),
             ])->all();
 
         return [

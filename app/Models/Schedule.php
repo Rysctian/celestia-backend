@@ -10,11 +10,19 @@ class Schedule extends Model
 {
     use HasFactory, ScheduleQuery;
 
-    protected $fillable = ['name', 'timezone', 'is_active'];
+    protected $fillable = ['name', 'timezone', 'attendance_policy_id', 'is_active'];
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean'];
+        return [
+            'attendance_policy_id' => 'integer',
+            'is_active' => 'boolean',
+        ];
+    }
+
+    public function attendancePolicy()
+    {
+        return $this->belongsTo(AttendancePolicy::class);
     }
 
     public function details()

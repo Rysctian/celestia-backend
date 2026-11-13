@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Attendance\AttendancePolicyController;
 use App\Http\Controllers\Attendance\EmployeeAttendanceController;
 use App\Http\Controllers\Auth\AuthenticationController;
 use App\Http\Controllers\CutOffController;
@@ -58,6 +59,12 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get('/employee-attendance', [EmployeeAttendanceController::class, 'showAttendance'])
         ->middleware('can:attendance,view');
+
+    Route::get('/attendance-policies', [AttendancePolicyController::class, 'index'])->middleware('can:attendance_policy,view');
+    Route::get('/attendance-policies/{policy_id}', [AttendancePolicyController::class, 'find'])->whereNumber('policy_id')->middleware('can:attendance_policy,view');
+    Route::post('/attendance-policies', [AttendancePolicyController::class, 'store'])->middleware('can:attendance_policy,create');
+    Route::put('/attendance-policies/{policy_id}', [AttendancePolicyController::class, 'update'])->whereNumber('policy_id')->middleware('can:attendance_policy,update');
+    Route::delete('/attendance-policies/{policy_id}', [AttendancePolicyController::class, 'destroy'])->whereNumber('policy_id')->middleware('can:attendance_policy,delete');
 
     Route::get('/cut-offs', [CutOffController::class, 'index'])->middleware('can:cut_off,view');
     Route::get('/cut-offs/{cut_off_id}', [CutOffController::class, 'find'])->whereNumber('cut_off_id')->middleware('can:cut_off,view');

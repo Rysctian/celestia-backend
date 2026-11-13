@@ -40,6 +40,7 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $this->call([
+            AttendancePolicySeeder::class,
             ScheduleSeeder::class,
             EmployeeScheduleSeeder::class,
             MenuSeeder::class,

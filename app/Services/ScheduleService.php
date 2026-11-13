@@ -10,12 +10,12 @@ class ScheduleService
 {
     public function search($request)
     {
-        return Schedule::with('details')->filterSearch($request)->get();
+        return Schedule::with(['details', 'attendancePolicy'])->filterSearch($request)->get();
     }
 
     public function findById(string $id)
     {
-        return Schedule::with('details')->find($id);
+        return Schedule::with(['details', 'attendancePolicy'])->find($id);
     }
 
     public function createSchedule(array $data)
@@ -24,7 +24,7 @@ class ScheduleService
             $schedule = Schedule::create($data);
             $schedule->details()->createMany($data['details']);
 
-            return $schedule->load('details');
+            return $schedule->load(['details', 'attendancePolicy']);
         });
     }
 
@@ -43,7 +43,7 @@ class ScheduleService
                 $schedule->details()->createMany($data['details']);
             }
 
-            return $schedule->load('details');
+            return $schedule->load(['details', 'attendancePolicy']);
         });
     }
 }

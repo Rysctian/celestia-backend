@@ -2,13 +2,14 @@
 
 namespace App\Services\Attendance;
 
+use App\Models\AttendancePolicy;
 use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Collection;
 
 class AttendanceCalculator
 {
-    public function calculate(string $date, Collection $schedules, Collection $logs): array
+    public function calculate(string $date, Collection $schedules, Collection $logs, ?AttendancePolicy $policy = null): array
     {
         $schedules = $schedules->where('is_rest_day', false)->values();
 
@@ -18,13 +19,13 @@ class AttendanceCalculator
         $scheduleStart = Carbon::parse("$date {$firstSchedule->start_time}");
         $scheduleEnd = Carbon::parse("$date {$lastSchedule->end_time}");
 
-        $tardyStart = Carbon::parse(
-            "$date ".($firstSchedule->tardy_start ?? $firstSchedule->start_time)
-        );
+        $tardyCutoff = $firstSchedule->tardy_start
+            ? Carbon::parse("$date {$firstSchedule->tardy_start}")
+            : $scheduleStart->copy()->addSeconds($policy?->tardy_grace_seconds ?? 0);
 
-        $undertimeStart = Carbon::parse(
-            "$date ".($lastSchedule->undertime_start ?? $lastSchedule->end_time)
-        );
+        $undertimeCutoff = $lastSchedule->undertime_start
+            ? Carbon::parse("$date {$lastSchedule->undertime_start}")
+            : $scheduleEnd->copy()->subSeconds($policy?->undertime_grace_seconds ?? 0);
 
         $earlyDismissalStart = Carbon::parse(
             "$date ".($lastSchedule->early_dismissal_start ?? $lastSchedule->end_time)
@@ -51,8 +52,31 @@ class AttendanceCalculator
             ];
         }
 
-        $tardySeconds = $timeIn->greaterThan($tardyStart) ? (int) $tardyStart->diffInSeconds($timeIn) : 0;
-        $undertimeSeconds = $timeOut && $timeOut->lessThan($undertimeStart) ? (int) $timeOut->diffInSeconds($scheduleEnd) : 0;
+        $lateAsAbsent = $policy?->absent_after_late_seconds !== null
+            && $timeIn->greaterThan($scheduleStart->copy()->addSeconds($policy->absent_after_late_seconds));
+
+        if ($lateAsAbsent) {
+            return [
+                'sched_start' => $scheduleStart->format('H:i:s'),
+                'sched_end' => $scheduleEnd->format('H:i:s'),
+                'time_in' => $timeIn->format('H:i:s'),
+                'time_out' => $timeOut?->format('H:i:s'),
+                'scheduled_seconds' => $scheduledSeconds,
+                'rendered_seconds' => 0,
+                'tardy_seconds' => 0,
+                'undertime_seconds' => $scheduledSeconds,
+                'early_out_seconds' => 0,
+                'absent' => true,
+                'remarks' => 'absent',
+            ];
+        }
+
+        $tardyOrigin = $policy?->tardy_count_from === AttendancePolicy::COUNT_FROM_AFTER_GRACE
+            ? $tardyCutoff
+            : $scheduleStart;
+
+        $tardySeconds = $timeIn->greaterThan($tardyCutoff) ? (int) $tardyOrigin->diffInSeconds($timeIn) : 0;
+        $undertimeSeconds = $timeOut && $timeOut->lessThan($undertimeCutoff) ? (int) $timeOut->diffInSeconds($scheduleEnd) : 0;
         $earlyOutSeconds = $timeOut && $timeOut->lessThan($earlyDismissalStart) ? (int) $timeOut->diffInSeconds($scheduleEnd) : 0;
         $renderedSeconds = $this->renderedSeconds($date, $schedules, $timeIn, $timeOut);
         $absent = $renderedSeconds === 0;
