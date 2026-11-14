@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Attendance\AttendancePolicyController;
 use App\Http\Controllers\Attendance\EmployeeAttendanceController;
+use App\Http\Controllers\Attendance\EmployeeLogController;
 use App\Http\Controllers\Auth\AuthenticationController;
 use App\Http\Controllers\CutOffController;
 use App\Http\Controllers\EmployeeController;
@@ -59,6 +60,15 @@ Route::middleware(['auth:sanctum'])->group(function () {
 
     Route::get('/employee-attendance', [EmployeeAttendanceController::class, 'showAttendance'])
         ->middleware('can:attendance,view');
+
+    Route::get('/employee-logs', [EmployeeLogController::class, 'index'])
+        ->middleware('can:attendance,view');
+    Route::post('/employee-logs', [EmployeeLogController::class, 'store'])
+        ->middleware('can:attendance,create');
+    Route::get('/employee-logs/template', [EmployeeLogController::class, 'downloadTemplate'])
+        ->middleware('can:attendance,view');
+    Route::post('/employee-logs/import', [EmployeeLogController::class, 'import'])
+        ->middleware('can:attendance,create');
 
     Route::get('/attendance-policies', [AttendancePolicyController::class, 'index'])->middleware('can:attendance_policy,view');
     Route::get('/attendance-policies/{policy_id}', [AttendancePolicyController::class, 'find'])->whereNumber('policy_id')->middleware('can:attendance_policy,view');

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Queries\EmployeeLogQuery;
 use Carbon\Carbon;
 use Database\Factories\EmployeeLogFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -11,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 class EmployeeLog extends Model
 {
     /** @use HasFactory<EmployeeLogFactory> */
-    use HasFactory;
+    use EmployeeLogQuery, HasFactory;
 
     protected $fillable = ['employee_id', 'logged_at', 'device_id', 'source'];
 

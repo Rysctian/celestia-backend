@@ -5,8 +5,9 @@
 # (docker-php-ext-install opcache fails on 8.5).
 FROM php:8.5-fpm-alpine AS base
 
-RUN apk add --no-cache libzip-dev icu-libs tzdata \
-    && docker-php-ext-install -j"$(nproc)" pdo_mysql bcmath pcntl zip
+RUN apk add --no-cache libzip-dev icu-libs tzdata libpng-dev freetype-dev libjpeg-turbo-dev \
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
+    && docker-php-ext-install -j"$(nproc)" pdo_mysql bcmath pcntl zip gd
 
 ENV TZ=Asia/Manila
 WORKDIR /var/www/html
