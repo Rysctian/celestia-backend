@@ -23,6 +23,7 @@ class MenuSeeder extends Seeder
             ['code' => 'attendance_policy', 'title' => 'Attendance Policy', 'path' => '/attendance-policies', 'parent' => 'administration',    'sort_order' => 3],
             ['code' => 'online_application', 'title' => 'Online Applications', 'path' => null,                'parent' => null,                 'sort_order' => 4],
             ['code' => 'overtime_application', 'title' => 'Overtime Application', 'path' => '/overtime-applications', 'parent' => 'online_application', 'sort_order' => 0],
+            ['code' => 'official_business', 'title' => 'Official Business', 'path' => '/official-business-applications', 'parent' => 'online_application', 'sort_order' => 1],
         ];
 
         foreach ($catalog as $item) {

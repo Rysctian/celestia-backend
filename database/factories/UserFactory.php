@@ -8,27 +8,30 @@ use App\Models\Role;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use Faker\Factory as FakerFactory;
 
 /**
  * @extends Factory<User>
  */
 class UserFactory extends Factory
 {
-    /**
-     * The current password being used by the factory.
-     */
-    protected static ?string $password;
+    protected static ?string $password = null;
 
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
+        if (class_exists(FakerFactory::class)) {
+            $faker = FakerFactory::create();
+            $name = $faker->name();
+            $email = $faker->unique()->safeEmail();
+        } else {
+            $suffix = strtolower(Str::random(8));
+            $name = 'User ' . strtoupper($suffix);
+            $email = "user.{$suffix}@example.com";
+        }
+
         return [
-            'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
+            'name' => $name,
+            'email' => $email,
             'employee_id' => null,
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
@@ -36,12 +39,9 @@ class UserFactory extends Factory
         ];
     }
 
-    /**
-     * Link the user to an existing employee.
-     */
     public function forEmployee(Employee $employee): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn () => [
             'employee_id' => $employee->employee_id,
             'name' => $employee->first_name . ' ' . $employee->last_name,
         ]);
@@ -49,15 +49,14 @@ class UserFactory extends Factory
 
     public function withRole(Role $role): static
     {
-        return $this->state(fn () => ['role_id' => $role->id]);
+        return $this->state(fn () => [
+            'role_id' => $role->id,
+        ]);
     }
 
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
     public function unverified(): static
     {
-        return $this->state(fn (array $attributes) => [
+        return $this->state(fn () => [
             'email_verified_at' => null,
         ]);
     }

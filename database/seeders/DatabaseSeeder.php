@@ -22,14 +22,14 @@ class DatabaseSeeder extends Seeder
     {
         $employees = Employee::factory(10)->create();
 
-        foreach ($employees as $employee) {
-            User::factory()
-                ->forEmployee($employee)
-                ->create();
-        }
+        // foreach ($employees as $employee) {
+        //     User::factory()
+        //         ->forEmployee($employee)
+        //         ->create();
+        // }
         $employees->first()->update(['type' => 'admin']);
         $adminRole = Role::where('code', 'admin')->firstOrFail();
-        User::where('employee_id', $employees->first()->employee_id)->update(['role_id' => $adminRole->id]);
+        // User::where('employee_id', $employees->first()->employee_id)->update(['role_id' => $adminRole->id]);
 
         User::factory()->create([
             'name' => 'Christian',
@@ -39,18 +39,18 @@ class DatabaseSeeder extends Seeder
             'password' => 'a',
         ]);
 
-        $this->call([
-            AttendancePolicySeeder::class,
-            ScheduleSeeder::class,
-            EmployeeScheduleSeeder::class,
-            MenuSeeder::class,
-            EmployeeLogSeeder::class,
-            EmployeeAttendanceSeeder::class,
-            EmployeeAttendanceLogSeeder::class,
-            CutOffSeeder::class,
-            ApproverSetupSeeder::class,
-            OvertimeApplicationSeeder::class,
-            ApplicationApprovalSeeder::class,
-        ]);
+        // $this->call([
+        //     AttendancePolicySeeder::class,
+        //     ScheduleSeeder::class,
+        //     EmployeeScheduleSeeder::class,
+        //     MenuSeeder::class,
+        //     EmployeeLogSeeder::class,
+        //     EmployeeAttendanceSeeder::class,
+        //     EmployeeAttendanceLogSeeder::class,
+        //     CutOffSeeder::class,
+        //     ApproverSetupSeeder::class,
+        //     OvertimeApplicationSeeder::class,
+        //     ApplicationApprovalSeeder::class,
+        // ]);
     }
 }

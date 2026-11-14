@@ -8,6 +8,7 @@ use App\Http\Controllers\CutOffController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\OnlineApplication\ApproverSetupController;
+use App\Http\Controllers\OnlineApplication\OfficialBusinessApplicationController;
 use App\Http\Controllers\OnlineApplication\OvertimeApplicationController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\Schedule\EmployeeScheduleController;
@@ -92,4 +93,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/overtime-applications/{application_id}/approve', [OvertimeApplicationController::class, 'approve'])->whereNumber('application_id')->middleware('can:overtime_application,update');
     Route::post('/overtime-applications/{application_id}/disapprove', [OvertimeApplicationController::class, 'disapprove'])->whereNumber('application_id')->middleware('can:overtime_application,update');
     Route::post('/overtime-applications/{application_id}/cancel', [OvertimeApplicationController::class, 'cancel'])->whereNumber('application_id')->middleware('can:overtime_application,update');
+
+    Route::get('/official-business-applications', [OfficialBusinessApplicationController::class, 'index'])->middleware('can:official_business,view');
+    Route::get('/official-business-applications/{application_id}', [OfficialBusinessApplicationController::class, 'find'])->whereNumber('application_id')->middleware('can:official_business,view');
+    Route::post('/official-business-applications', [OfficialBusinessApplicationController::class, 'store'])->middleware('can:official_business,create');
+    Route::post('/official-business-applications/{application_id}/approve', [OfficialBusinessApplicationController::class, 'approve'])->whereNumber('application_id')->middleware('can:official_business,update');
+    Route::post('/official-business-applications/{application_id}/disapprove', [OfficialBusinessApplicationController::class, 'disapprove'])->whereNumber('application_id')->middleware('can:official_business,update');
+    Route::post('/official-business-applications/{application_id}/cancel', [OfficialBusinessApplicationController::class, 'cancel'])->whereNumber('application_id')->middleware('can:official_business,update');
 });

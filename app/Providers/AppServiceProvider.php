@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\OnlineApplication\OfficialBusinessApplication;
 use App\Models\OnlineApplication\OvertimeApplication;
 use App\Models\User;
 use Dedoc\Scramble\Scramble;
@@ -26,7 +27,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        Relation::morphMap(['overtime' => OvertimeApplication::class]);
+        Relation::morphMap([
+            'overtime' => OvertimeApplication::class,
+            'official_business' => OfficialBusinessApplication::class,
+        ]);
         Gate::define('manage-schedules', fn (User $user) => $user->hasMenuAccess('schedule_list', 'update'));
         Gate::define('manage-employees', fn (User $user) => $user->hasMenuAccess('employee_201', 'update'));
 
