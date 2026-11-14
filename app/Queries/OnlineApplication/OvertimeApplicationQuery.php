@@ -2,6 +2,8 @@
 
 namespace App\Queries\OnlineApplication;
 
+use Illuminate\Support\Arr;
+
 trait OvertimeApplicationQuery
 {
     public function scopeFilterSearch($query, $request)
@@ -12,7 +14,7 @@ trait OvertimeApplicationQuery
 
         return $query
             ->when($request->filled('employee_id'), fn ($query) => $query->where('employee_id', $request->employee_id))
-            ->when($request->filled('status'), fn ($query) => $query->where('status', $request->status))
+            ->when($request->filled('status'), fn ($query) => $query->whereIn('status', Arr::wrap($request->status)))
             ->when($request->search, fn ($query, $search) => $query->where(fn ($query) => $query
                 ->where('reason', 'like', "%{$search}%")
                 ->orWhere('employee_id', 'like', "%{$search}%")

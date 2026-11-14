@@ -151,4 +151,32 @@ class EmployeeLogImportTest extends TestCase
             'source' => 'manual',
         ]);
     }
+
+    public function test_manual_am_pm_paired_employee_logs(): void
+    {
+        $admin = $this->actingAsRole('admin');
+
+        $this->postJson('/api/employee-logs', [
+            'employee_id' => $admin->employee_id,
+            'date' => '2024-09-15',
+            'am_in' => '08:00',
+            'am_out' => '12:00',
+            'pm_in' => '13:00',
+            'pm_out' => '17:00',
+        ])
+            ->assertCreated()
+            ->assertJsonPath('summary.imported_count', 4)
+            ->assertJsonPath('summary.skipped_count', 0);
+
+        $this->assertDatabaseHas('employee_logs', [
+            'employee_id' => $admin->employee_id,
+            'logged_at' => '2024-09-15 08:00:00',
+            'source' => 'manual',
+        ]);
+        $this->assertDatabaseHas('employee_logs', [
+            'employee_id' => $admin->employee_id,
+            'logged_at' => '2024-09-15 17:00:00',
+            'source' => 'manual',
+        ]);
+    }
 }
