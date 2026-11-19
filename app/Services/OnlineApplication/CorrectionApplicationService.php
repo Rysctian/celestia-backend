@@ -34,26 +34,28 @@ class CorrectionApplicationService
             ->findOrFail($id);
     }
 
+    public function getLogsForDate(string $employeeId, string $date, User $actor): array
+    {
+        if (! $this->isAdministrator($actor)) {
+            abort_unless($actor->employee_id && $employeeId === $actor->employee_id, 403, 'View only your own attendance logs.');
+        }
+
+        return $this->correctionLogs->getDateLogsSummary($employeeId, $date);
+    }
+
     public function submit(array $data, User $actor)
     {
         $actorEmployeeId = $actor->employee_id;
         $isAdmin = $this->isAdministrator($actor);
 
-        $employeeIds = [];
-        if (! empty($data['employee_ids']) && is_array($data['employee_ids'])) {
-            $employeeIds = array_values(array_unique(array_filter($data['employee_ids'])));
-        } elseif (! empty($data['employee_id'])) {
-            $employeeIds = [$data['employee_id']];
-        } elseif ($actorEmployeeId) {
-            $employeeIds = [$actorEmployeeId];
-        }
+        $employeeId = ! empty($data['employee_id'])
+            ? (string) $data['employee_id']
+            : ($actorEmployeeId ? (string) $actorEmployeeId : '');
 
-        abort_if(empty($employeeIds), 422, 'Select at least one employee for the correction application.');
+        abort_if($employeeId === '', 422, 'Select an employee for the correction application.');
 
         if (! $isAdmin) {
-            foreach ($employeeIds as $id) {
-                abort_unless($actorEmployeeId && $id === $actorEmployeeId, 403, 'Submit only your own correction application.');
-            }
+            abort_unless($actorEmployeeId && $employeeId === $actorEmployeeId, 403, 'Submit only your own correction application.');
         }
 
         $allowApprover = isset($data['allow_approver'])
@@ -61,35 +63,29 @@ class CorrectionApplicationService
             : (! (bool) ($data['auto_approved'] ?? false));
         $status = $allowApprover ? 'pending' : 'approved';
 
-        return DB::transaction(function () use ($data, $employeeIds, $allowApprover, $status) {
-            $applications = [];
+        return DB::transaction(function () use ($data, $employeeId, $allowApprover, $status) {
+            Employee::where('employee_id', $employeeId)->lockForUpdate()->firstOrFail();
+            $details = $this->prepareDetails($employeeId, $data['details']);
 
-            foreach ($employeeIds as $employeeId) {
-                Employee::where('employee_id', $employeeId)->lockForUpdate()->firstOrFail();
-                $details = $this->prepareDetails($employeeId, $data['details']);
+            $application = CorrectionApplication::create([
+                'employee_id' => $employeeId,
+                'reason' => $data['reason'],
+                'status' => $status,
+                'submitted_at' => now(),
+            ]);
+            $application->details()->createMany($details);
 
-                $application = CorrectionApplication::create([
-                    'employee_id' => $employeeId,
-                    'reason' => $data['reason'],
-                    'status' => $status,
-                    'submitted_at' => now(),
-                ]);
-                $application->details()->createMany($details);
-
-                if ($allowApprover) {
-                    $this->approvals->snapshot($application);
-                } else {
-                    $this->correctionLogs->syncApprovedLogs($application);
-                }
-
-                $applications[] = $application->load([
-                    'employee:id,employee_id,first_name,last_name',
-                    'details',
-                    'approvals.approver:id,employee_id,first_name,last_name',
-                ]);
+            if ($allowApprover) {
+                $this->approvals->snapshot($application);
+            } else {
+                $this->correctionLogs->syncApprovedLogs($application);
             }
 
-            return count($applications) === 1 ? $applications[0] : $applications;
+            return $application->load([
+                'employee:id,employee_id,first_name,last_name',
+                'details',
+                'approvals.approver:id,employee_id,first_name,last_name',
+            ]);
         }, 3);
     }
 
@@ -192,8 +188,15 @@ class CorrectionApplicationService
                 throw ValidationException::withMessages(["details.$index.pm_in" => 'PM times must not be earlier than AM times.']);
             }
 
+            $oldSummary = $this->correctionLogs->getDateLogsSummary($employeeId, $date);
+            $oldPaired = $oldSummary['paired_db'];
+
             $prepared[] = [
                 'date' => $date,
+                'old_am_in' => $oldPaired['am_in'],
+                'old_am_out' => $oldPaired['am_out'],
+                'old_pm_in' => $oldPaired['pm_in'],
+                'old_pm_out' => $oldPaired['pm_out'],
                 'am_in' => $amIn?->format('H:i:s'),
                 'am_out' => $amOut?->format('H:i:s'),
                 'pm_in' => $pmIn?->format('H:i:s'),

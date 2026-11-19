@@ -22,22 +22,22 @@ class DatabaseSeeder extends Seeder
     {
         $employees = Employee::factory(10)->create();
 
-        // foreach ($employees as $employee) {
-        //     User::factory()
-        //         ->forEmployee($employee)
-        //         ->create();
-        // }
-        // $employees->first()->update(['type' => 'admin']);
-        // $adminRole = Role::where('code', 'admin')->firstOrFail();
-        // // User::where('employee_id', $employees->first()->employee_id)->update(['role_id' => $adminRole->id]);
+        foreach ($employees as $employee) {
+            User::factory()
+                ->forEmployee($employee)
+                ->create();
+        }
+        $employees->first()->update(['type' => 'admin']);
+        $adminRole = Role::where('code', 'admin')->firstOrFail();
+        // User::where('employee_id', $employees->first()->employee_id)->update(['role_id' => $adminRole->id]);
 
-        // User::factory()->create([
-        //     'name' => 'Christian',
-        //     'email' => 'admin@example.com',
-    //     'employee_id' => $employees->first()->employee_id,
-        //     'role_id' => $adminRole->id,
-        //     'password' => 'a',
-        // ]);
+        User::factory()->create([
+            'name' => 'Christian',
+            'email' => 'admin@example.com',
+        'employee_id' => $employees->first()->employee_id,
+            'role_id' => $adminRole->id,
+            'password' => 'a',
+        ]);
 
         $this->call([
             AttendancePolicySeeder::class,

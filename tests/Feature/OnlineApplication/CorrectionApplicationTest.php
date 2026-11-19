@@ -137,11 +137,34 @@ class CorrectionApplicationTest extends TestCase
     public function test_admin_auto_approve_syncs_logs_immediately_and_override_disapprove_cleans_up(): void
     {
         $admin = $this->user('admin');
-        $other = $this->user();
         Sanctum::actingAs($admin);
 
+        // Seed an existing wrong punch for the applicant on 2026-11-18
+        EmployeeLog::create([
+            'employee_id' => $this->applicant->employee_id,
+            'logged_at' => '2026-11-18 08:35:00',
+            'device_id' => 'BIO-01',
+            'source' => 'biometric',
+        ]);
+
+        // Fetch existing logs for the selected date
+        $this->getJson("/api/correction-applications/logs?employee_id={$this->applicant->employee_id}&date=2026-11-18")
+            ->assertOk()
+            ->assertJsonPath('data.paired.am_in', '08:35')
+            ->assertJsonCount(1, 'data.logs');
+
+        // Multi-employee submission is rejected
+        $this->postJson('/api/correction-applications', [
+            'employee_ids' => [$this->applicant->employee_id],
+            'allow_approver' => false,
+            'reason' => 'Should reject multiple.',
+            'details' => [
+                ['date' => '2026-11-18', 'am_in' => '08:00', 'am_out' => '12:00', 'pm_in' => '13:00', 'pm_out' => '17:00'],
+            ],
+        ])->assertUnprocessable()->assertJsonValidationErrors(['employee_ids']);
+
         $response = $this->postJson('/api/correction-applications', [
-            'employee_ids' => [$this->applicant->employee_id, $other->employee_id],
+            'employee_id' => $this->applicant->employee_id,
             'allow_approver' => false,
             'reason' => 'HR verified DTR log sheet.',
             'details' => [
@@ -149,7 +172,12 @@ class CorrectionApplicationTest extends TestCase
             ],
         ])->assertCreated();
 
-        $appId = $response->json('data.0.id');
+        $appId = $response->json('data.id');
+        $response->assertJsonPath('data.details.0.old_am_in', '08:35:00');
+        $this->assertDatabaseMissing('employee_logs', [
+            'employee_id' => $this->applicant->employee_id,
+            'logged_at' => '2026-11-18 08:35:00',
+        ]);
         $this->assertEquals(4, EmployeeLog::where('device_id', "CORRECTION-APP-{$appId}")->count());
 
         $this->postJson("/api/correction-applications/{$appId}/disapprove", [

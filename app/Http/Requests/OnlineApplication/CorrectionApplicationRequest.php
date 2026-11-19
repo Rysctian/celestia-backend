@@ -15,8 +15,7 @@ class CorrectionApplicationRequest extends FormRequest
     {
         return [
             'employee_id' => ['sometimes', 'nullable', 'string', 'exists:employees,employee_id'],
-            'employee_ids' => ['sometimes', 'array'],
-            'employee_ids.*' => ['string', 'exists:employees,employee_id'],
+            'employee_ids' => ['prohibited'],
             'allow_approver' => ['sometimes', 'boolean'],
             'auto_approved' => ['sometimes', 'boolean'],
             'reason' => ['required', 'string', 'max:5000'],

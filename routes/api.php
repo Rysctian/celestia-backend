@@ -103,6 +103,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/official-business-applications/{application_id}/cancel', [OfficialBusinessApplicationController::class, 'cancel'])->whereNumber('application_id')->middleware('can:official_business,update');
 
     Route::get('/correction-applications', [CorrectionApplicationController::class, 'index'])->middleware('can:correction_application,view');
+    Route::get('/correction-applications/logs', [CorrectionApplicationController::class, 'logs'])->middleware('can:correction_application,view');
     Route::get('/correction-applications/{application_id}', [CorrectionApplicationController::class, 'find'])->whereNumber('application_id')->middleware('can:correction_application,view');
     Route::post('/correction-applications', [CorrectionApplicationController::class, 'store'])->middleware('can:correction_application,create');
     Route::post('/correction-applications/{application_id}/approve', [CorrectionApplicationController::class, 'approve'])->whereNumber('application_id')->middleware('can:correction_application,update');

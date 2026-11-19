@@ -28,6 +28,23 @@ class CorrectionApplicationController extends Controller
         ]);
     }
 
+    public function logs(Request $request)
+    {
+        $validated = $request->validate([
+            'employee_id' => ['required', 'string', 'exists:employees,employee_id'],
+            'date' => ['required', 'date_format:Y-m-d'],
+        ]);
+
+        return response()->json([
+            'message' => 'success',
+            'data' => $this->corrections->getLogsForDate(
+                $validated['employee_id'],
+                $validated['date'],
+                $request->user(),
+            ),
+        ]);
+    }
+
     public function store(CorrectionApplicationRequest $request)
     {
         return response()->json([
