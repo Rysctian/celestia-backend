@@ -27,30 +27,30 @@ class DatabaseSeeder extends Seeder
         //         ->forEmployee($employee)
         //         ->create();
         // }
-        $employees->first()->update(['type' => 'admin']);
-        $adminRole = Role::where('code', 'admin')->firstOrFail();
-        // User::where('employee_id', $employees->first()->employee_id)->update(['role_id' => $adminRole->id]);
+        // $employees->first()->update(['type' => 'admin']);
+        // $adminRole = Role::where('code', 'admin')->firstOrFail();
+        // // User::where('employee_id', $employees->first()->employee_id)->update(['role_id' => $adminRole->id]);
 
-        User::factory()->create([
-            'name' => 'Christian',
-            'email' => 'admin@example.com',
-            'employee_id' => $employees->first()->employee_id,
-            'role_id' => $adminRole->id,
-            'password' => 'a',
-        ]);
-
-        // $this->call([
-        //     AttendancePolicySeeder::class,
-        //     ScheduleSeeder::class,
-        //     EmployeeScheduleSeeder::class,
-        //     MenuSeeder::class,
-        //     EmployeeLogSeeder::class,
-        //     EmployeeAttendanceSeeder::class,
-        //     EmployeeAttendanceLogSeeder::class,
-        //     CutOffSeeder::class,
-        //     ApproverSetupSeeder::class,
-        //     OvertimeApplicationSeeder::class,
-        //     ApplicationApprovalSeeder::class,
+        // User::factory()->create([
+        //     'name' => 'Christian',
+        //     'email' => 'admin@example.com',
+    //     'employee_id' => $employees->first()->employee_id,
+        //     'role_id' => $adminRole->id,
+        //     'password' => 'a',
         // ]);
+
+        $this->call([
+            AttendancePolicySeeder::class,
+            ScheduleSeeder::class,
+            EmployeeScheduleSeeder::class,
+            MenuSeeder::class,
+            EmployeeLogSeeder::class,
+            EmployeeAttendanceSeeder::class,
+            EmployeeAttendanceLogSeeder::class,
+            CutOffSeeder::class,
+            ApproverSetupSeeder::class,
+            OvertimeApplicationSeeder::class,
+            ApplicationApprovalSeeder::class,
+        ]);
     }
 }

@@ -4,14 +4,20 @@ namespace Database\Factories;
 
 use App\Models\Schedule;
 use App\Models\ScheduleDetail;
+use Faker\Factory as FakerFactory;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 /** @extends Factory<Schedule> */
 class ScheduleFactory extends Factory
 {
     public function definition(): array
     {
-        return ['name' => fake()->words(3, true), 'timezone' => 'Asia/Manila', 'is_active' => true];
+        $name = class_exists(FakerFactory::class)
+            ? fake()->words(3, true)
+            : 'Schedule '.strtoupper(Str::random(6));
+
+        return ['name' => $name, 'timezone' => 'Asia/Manila', 'is_active' => true];
     }
 
     public function withWeek(): static

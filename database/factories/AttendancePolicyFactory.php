@@ -3,16 +3,20 @@
 namespace Database\Factories;
 
 use App\Models\AttendancePolicy;
+use Faker\Factory as FakerFactory;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Str;
 
 /** @extends Factory<AttendancePolicy> */
 class AttendancePolicyFactory extends Factory
 {
     public function definition(): array
     {
+        $hasFaker = class_exists(FakerFactory::class);
+
         return [
-            'name' => fake()->unique()->words(3, true).' Policy',
-            'description' => fake()->sentence(),
+            'name' => ($hasFaker ? fake()->unique()->words(3, true) : 'Standard '.strtoupper(Str::random(6))).' Policy',
+            'description' => $hasFaker ? fake()->sentence() : 'Standard attendance policy configuration.',
             'tardy_grace_seconds' => 900,
             'tardy_count_from' => AttendancePolicy::COUNT_FROM_SCHEDULE_START,
             'absent_after_late_seconds' => null,

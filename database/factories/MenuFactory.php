@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Models\Menu;
+use Faker\Factory as FakerFactory;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -11,7 +12,9 @@ class MenuFactory extends Factory
 {
     public function definition(): array
     {
-        $title = fake()->unique()->words(2, true);
+        $title = class_exists(FakerFactory::class)
+            ? fake()->unique()->words(2, true)
+            : 'Menu '.strtoupper(Str::random(6));
 
         return [
             'code' => Str::slug($title, '_'),

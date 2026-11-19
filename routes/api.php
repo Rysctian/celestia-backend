@@ -8,6 +8,7 @@ use App\Http\Controllers\CutOffController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\OnlineApplication\ApproverSetupController;
+use App\Http\Controllers\OnlineApplication\CorrectionApplicationController;
 use App\Http\Controllers\OnlineApplication\OfficialBusinessApplicationController;
 use App\Http\Controllers\OnlineApplication\OvertimeApplicationController;
 use App\Http\Controllers\RoleController;
@@ -100,4 +101,11 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/official-business-applications/{application_id}/approve', [OfficialBusinessApplicationController::class, 'approve'])->whereNumber('application_id')->middleware('can:official_business,update');
     Route::post('/official-business-applications/{application_id}/disapprove', [OfficialBusinessApplicationController::class, 'disapprove'])->whereNumber('application_id')->middleware('can:official_business,update');
     Route::post('/official-business-applications/{application_id}/cancel', [OfficialBusinessApplicationController::class, 'cancel'])->whereNumber('application_id')->middleware('can:official_business,update');
+
+    Route::get('/correction-applications', [CorrectionApplicationController::class, 'index'])->middleware('can:correction_application,view');
+    Route::get('/correction-applications/{application_id}', [CorrectionApplicationController::class, 'find'])->whereNumber('application_id')->middleware('can:correction_application,view');
+    Route::post('/correction-applications', [CorrectionApplicationController::class, 'store'])->middleware('can:correction_application,create');
+    Route::post('/correction-applications/{application_id}/approve', [CorrectionApplicationController::class, 'approve'])->whereNumber('application_id')->middleware('can:correction_application,update');
+    Route::post('/correction-applications/{application_id}/disapprove', [CorrectionApplicationController::class, 'disapprove'])->whereNumber('application_id')->middleware('can:correction_application,update');
+    Route::post('/correction-applications/{application_id}/cancel', [CorrectionApplicationController::class, 'cancel'])->whereNumber('application_id')->middleware('can:correction_application,update');
 });
