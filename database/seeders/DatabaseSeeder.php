@@ -7,6 +7,8 @@ use App\Models\Role;
 use App\Models\User;
 use Database\Seeders\OnlineApplication\ApplicationApprovalSeeder;
 use Database\Seeders\OnlineApplication\ApproverSetupSeeder;
+use Database\Seeders\OnlineApplication\LeavePolicySeeder;
+use Database\Seeders\OnlineApplication\LeaveTypeSeeder;
 use Database\Seeders\OnlineApplication\OvertimeApplicationSeeder;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -51,6 +53,8 @@ class DatabaseSeeder extends Seeder
             ApproverSetupSeeder::class,
             OvertimeApplicationSeeder::class,
             ApplicationApprovalSeeder::class,
+            LeavePolicySeeder::class,
+            LeaveTypeSeeder::class,
         ]);
     }
 }

@@ -9,6 +9,9 @@ use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\MenuController;
 use App\Http\Controllers\OnlineApplication\ApproverSetupController;
 use App\Http\Controllers\OnlineApplication\CorrectionApplicationController;
+use App\Http\Controllers\OnlineApplication\LeaveApplicationController;
+use App\Http\Controllers\OnlineApplication\LeavePolicyController;
+use App\Http\Controllers\OnlineApplication\LeaveSetupController;
 use App\Http\Controllers\OnlineApplication\OfficialBusinessApplicationController;
 use App\Http\Controllers\OnlineApplication\OvertimeApplicationController;
 use App\Http\Controllers\RoleController;
@@ -109,4 +112,30 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/correction-applications/{application_id}/approve', [CorrectionApplicationController::class, 'approve'])->whereNumber('application_id')->middleware('can:correction_application,update');
     Route::post('/correction-applications/{application_id}/disapprove', [CorrectionApplicationController::class, 'disapprove'])->whereNumber('application_id')->middleware('can:correction_application,update');
     Route::post('/correction-applications/{application_id}/cancel', [CorrectionApplicationController::class, 'cancel'])->whereNumber('application_id')->middleware('can:correction_application,update');
+
+    Route::get('/leave-policies', [LeavePolicyController::class, 'index'])->middleware('can:leave_application,view');
+    Route::get('/leave-policies/{policy_id}', [LeavePolicyController::class, 'find'])->whereNumber('policy_id')->middleware('can:leave_application,view');
+    Route::post('/leave-policies', [LeavePolicyController::class, 'store'])->middleware('can:leave_application,create');
+    Route::put('/leave-policies/{policy_id}', [LeavePolicyController::class, 'update'])->whereNumber('policy_id')->middleware('can:leave_application,update');
+    Route::delete('/leave-policies/{policy_id}', [LeavePolicyController::class, 'destroy'])->whereNumber('policy_id')->middleware('can:leave_application,delete');
+
+    Route::get('/leave-types', [LeaveSetupController::class, 'types'])->middleware('can:leave_application,view');
+    Route::post('/leave-types', [LeaveSetupController::class, 'storeType'])->middleware('can:leave_application,create');
+    Route::put('/leave-types/{leave_type_id}', [LeaveSetupController::class, 'updateType'])->whereNumber('leave_type_id')->middleware('can:leave_application,update');
+    Route::delete('/leave-types/{leave_type_id}', [LeaveSetupController::class, 'destroyType'])->whereNumber('leave_type_id')->middleware('can:leave_application,delete');
+
+    Route::get('/employee-leave-credits', [LeaveSetupController::class, 'credits'])->middleware('can:leave_application,view');
+    Route::post('/employee-leave-credits', [LeaveSetupController::class, 'storeCredit'])->middleware('can:leave_application,create');
+    Route::put('/employee-leave-credits/{credit_id}', [LeaveSetupController::class, 'updateCredit'])->whereNumber('credit_id')->middleware('can:leave_application,update');
+    Route::post('/employee-leave-credits/allocate', [LeaveSetupController::class, 'allocateCredits'])->middleware('can:leave_application,create');
+    Route::get('/employee-leave-credits/{credit_id}/logs', [LeaveSetupController::class, 'creditLogs'])->whereNumber('credit_id')->middleware('can:leave_application,view');
+
+    Route::get('/leave-applications', [LeaveApplicationController::class, 'index'])->middleware('can:leave_application,view');
+    Route::get('/leave-applications/balances', [LeaveApplicationController::class, 'balances'])->middleware('can:leave_application,view');
+    Route::get('/leave-applications/{application_id}', [LeaveApplicationController::class, 'find'])->whereNumber('application_id')->middleware('can:leave_application,view');
+    Route::get('/leave-applications/{application_id}/attachment', [LeaveApplicationController::class, 'attachment'])->whereNumber('application_id')->middleware('can:leave_application,view');
+    Route::post('/leave-applications', [LeaveApplicationController::class, 'store'])->middleware('can:leave_application,create');
+    Route::post('/leave-applications/{application_id}/approve', [LeaveApplicationController::class, 'approve'])->whereNumber('application_id')->middleware('can:leave_application,update');
+    Route::post('/leave-applications/{application_id}/disapprove', [LeaveApplicationController::class, 'disapprove'])->whereNumber('application_id')->middleware('can:leave_application,update');
+    Route::post('/leave-applications/{application_id}/cancel', [LeaveApplicationController::class, 'cancel'])->whereNumber('application_id')->middleware('can:leave_application,update');
 });

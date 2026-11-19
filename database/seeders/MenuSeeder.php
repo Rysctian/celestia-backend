@@ -25,6 +25,7 @@ class MenuSeeder extends Seeder
             ['code' => 'overtime_application', 'title' => 'Overtime Application', 'path' => '/overtime-applications', 'parent' => 'online_application', 'sort_order' => 0],
             ['code' => 'official_business', 'title' => 'Official Business', 'path' => '/official-business-applications', 'parent' => 'online_application', 'sort_order' => 1],
             ['code' => 'correction_application', 'title' => 'Correction of Logs', 'path' => '/correction-applications', 'parent' => 'online_application', 'sort_order' => 2],
+            ['code' => 'leave_application', 'title' => 'Leave Application', 'path' => '/leave-applications', 'parent' => 'online_application', 'sort_order' => 3],
         ];
 
         foreach ($catalog as $item) {

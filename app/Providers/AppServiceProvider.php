@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use App\Models\OnlineApplication\CorrectionApplication;
+use App\Models\OnlineApplication\LeaveApplication;
 use App\Models\OnlineApplication\OfficialBusinessApplication;
 use App\Models\OnlineApplication\OvertimeApplication;
 use App\Models\User;
@@ -32,6 +33,7 @@ class AppServiceProvider extends ServiceProvider
             'overtime' => OvertimeApplication::class,
             'official_business' => OfficialBusinessApplication::class,
             'correction' => CorrectionApplication::class,
+            'leave' => LeaveApplication::class,
         ]);
         Gate::define('manage-schedules', fn (User $user) => $user->hasMenuAccess('schedule_list', 'update'));
         Gate::define('manage-employees', fn (User $user) => $user->hasMenuAccess('employee_201', 'update'));
