@@ -26,6 +26,11 @@ class MenuSeeder extends Seeder
             ['code' => 'official_business', 'title' => 'Official Business', 'path' => '/official-business-applications', 'parent' => 'online_application', 'sort_order' => 1],
             ['code' => 'correction_application', 'title' => 'Correction of Logs', 'path' => '/correction-applications', 'parent' => 'online_application', 'sort_order' => 2],
             ['code' => 'leave_application', 'title' => 'Leave Application', 'path' => '/leave-applications', 'parent' => 'online_application', 'sort_order' => 3],
+            ['code' => 'setup', 'title' => 'Setup', 'path' => null, 'parent' => null, 'sort_order' => 5],
+            ['code' => 'organizational_setup', 'title' => 'Organizational Setup', 'path' => '/setup/organizational', 'parent' => 'setup', 'sort_order' => 0],
+            ['code' => 'employee_info_setup', 'title' => 'Employee Information Setup', 'path' => '/setup/employee-information', 'parent' => 'setup', 'sort_order' => 1],
+            ['code' => 'employment_setup', 'title' => 'Employment Setup', 'path' => '/setup/employment', 'parent' => 'setup', 'sort_order' => 2],
+            ['code' => 'administrative_setup', 'title' => 'Administrative Setup', 'path' => '/setup/administrative', 'parent' => 'setup', 'sort_order' => 3],
         ];
 
         foreach ($catalog as $item) {

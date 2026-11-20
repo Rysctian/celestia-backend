@@ -10,6 +10,9 @@ use Database\Seeders\OnlineApplication\ApproverSetupSeeder;
 use Database\Seeders\OnlineApplication\LeavePolicySeeder;
 use Database\Seeders\OnlineApplication\LeaveTypeSeeder;
 use Database\Seeders\OnlineApplication\OvertimeApplicationSeeder;
+use Database\Seeders\Setup\ClearanceSetupSeeder;
+use Database\Seeders\Setup\OrganizationalSetupSeeder;
+use Database\Seeders\Setup\SetupReferenceItemSeeder;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -55,6 +58,9 @@ class DatabaseSeeder extends Seeder
             ApplicationApprovalSeeder::class,
             LeavePolicySeeder::class,
             LeaveTypeSeeder::class,
+            OrganizationalSetupSeeder::class,
+            SetupReferenceItemSeeder::class,
+            ClearanceSetupSeeder::class,
         ]);
     }
 }

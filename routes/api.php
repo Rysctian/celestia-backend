@@ -17,7 +17,11 @@ use App\Http\Controllers\OnlineApplication\OvertimeApplicationController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\Schedule\EmployeeScheduleController;
 use App\Http\Controllers\Schedule\ScheduleController;
+use App\Http\Controllers\Setup\ClearanceSetupController;
+use App\Http\Controllers\Setup\OrganizationalSetupController;
+use App\Http\Controllers\Setup\SetupReferenceController;
 use App\Http\Controllers\UserManagementController;
+use App\Models\Setup\SetupReferenceItem;
 use Illuminate\Support\Facades\Route;
 use Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful;
 
@@ -138,4 +142,135 @@ Route::middleware(['auth:sanctum'])->group(function () {
     Route::post('/leave-applications/{application_id}/approve', [LeaveApplicationController::class, 'approve'])->whereNumber('application_id')->middleware('can:leave_application,update');
     Route::post('/leave-applications/{application_id}/disapprove', [LeaveApplicationController::class, 'disapprove'])->whereNumber('application_id')->middleware('can:leave_application,update');
     Route::post('/leave-applications/{application_id}/cancel', [LeaveApplicationController::class, 'cancel'])->whereNumber('application_id')->middleware('can:leave_application,update');
+
+    // -------------------------------------------------------------------------
+    // HRIS Setup Modules (01. Organizational, 02. Employee Info, 03. Employment, 04. Administrative)
+    // -------------------------------------------------------------------------
+    Route::get('/setup/options', [SetupReferenceController::class, 'options']);
+
+    // 01. Organizational Setup
+    Route::get('/setup/organizational/tree', [OrganizationalSetupController::class, 'tree'])->middleware('can:organizational_setup,view');
+
+    Route::get('/setup/offices', [OrganizationalSetupController::class, 'indexOffices'])->middleware('can:organizational_setup,view');
+    Route::get('/setup/offices/{office_id}', [OrganizationalSetupController::class, 'findOffice'])->whereNumber('office_id')->middleware('can:organizational_setup,view');
+    Route::post('/setup/offices', [OrganizationalSetupController::class, 'storeOffice'])->middleware('can:organizational_setup,create');
+    Route::put('/setup/offices/{office_id}', [OrganizationalSetupController::class, 'updateOffice'])->whereNumber('office_id')->middleware('can:organizational_setup,update');
+    Route::delete('/setup/offices/{office_id}', [OrganizationalSetupController::class, 'destroyOffice'])->whereNumber('office_id')->middleware('can:organizational_setup,delete');
+
+    Route::get('/setup/departments', [OrganizationalSetupController::class, 'indexDepartments'])->middleware('can:organizational_setup,view');
+    Route::get('/setup/departments/{department_id}', [OrganizationalSetupController::class, 'findDepartment'])->whereNumber('department_id')->middleware('can:organizational_setup,view');
+    Route::post('/setup/departments', [OrganizationalSetupController::class, 'storeDepartment'])->middleware('can:organizational_setup,create');
+    Route::put('/setup/departments/{department_id}', [OrganizationalSetupController::class, 'updateDepartment'])->whereNumber('department_id')->middleware('can:organizational_setup,update');
+    Route::delete('/setup/departments/{department_id}', [OrganizationalSetupController::class, 'destroyDepartment'])->whereNumber('department_id')->middleware('can:organizational_setup,delete');
+
+    Route::get('/setup/divisions', [OrganizationalSetupController::class, 'indexDivisions'])->middleware('can:organizational_setup,view');
+    Route::get('/setup/divisions/{division_id}', [OrganizationalSetupController::class, 'findDivision'])->whereNumber('division_id')->middleware('can:organizational_setup,view');
+    Route::post('/setup/divisions', [OrganizationalSetupController::class, 'storeDivision'])->middleware('can:organizational_setup,create');
+    Route::put('/setup/divisions/{division_id}', [OrganizationalSetupController::class, 'updateDivision'])->whereNumber('division_id')->middleware('can:organizational_setup,update');
+    Route::delete('/setup/divisions/{division_id}', [OrganizationalSetupController::class, 'destroyDivision'])->whereNumber('division_id')->middleware('can:organizational_setup,delete');
+
+    Route::get('/setup/sections', [OrganizationalSetupController::class, 'indexSections'])->middleware('can:organizational_setup,view');
+    Route::get('/setup/sections/{section_id}', [OrganizationalSetupController::class, 'findSection'])->whereNumber('section_id')->middleware('can:organizational_setup,view');
+    Route::post('/setup/sections', [OrganizationalSetupController::class, 'storeSection'])->middleware('can:organizational_setup,create');
+    Route::put('/setup/sections/{section_id}', [OrganizationalSetupController::class, 'updateSection'])->whereNumber('section_id')->middleware('can:organizational_setup,update');
+    Route::delete('/setup/sections/{section_id}', [OrganizationalSetupController::class, 'destroySection'])->whereNumber('section_id')->middleware('can:organizational_setup,delete');
+
+    Route::get('/setup/positions', [OrganizationalSetupController::class, 'indexPositions'])->middleware('can:organizational_setup,view');
+    Route::get('/setup/positions/{position_id}', [OrganizationalSetupController::class, 'findPosition'])->whereNumber('position_id')->middleware('can:organizational_setup,view');
+    Route::post('/setup/positions', [OrganizationalSetupController::class, 'storePosition'])->middleware('can:organizational_setup,create');
+    Route::put('/setup/positions/{position_id}', [OrganizationalSetupController::class, 'updatePosition'])->whereNumber('position_id')->middleware('can:organizational_setup,update');
+    Route::delete('/setup/positions/{position_id}', [OrganizationalSetupController::class, 'destroyPosition'])->whereNumber('position_id')->middleware('can:organizational_setup,delete');
+
+    Route::get('/setup/reports-items', [OrganizationalSetupController::class, 'indexReportsItems'])->middleware('can:organizational_setup,view');
+    Route::get('/setup/reports-items/{reports_item_id}', [OrganizationalSetupController::class, 'findReportsItem'])->whereNumber('reports_item_id')->middleware('can:organizational_setup,view');
+    Route::post('/setup/reports-items', [OrganizationalSetupController::class, 'storeReportsItem'])->middleware('can:organizational_setup,create');
+    Route::put('/setup/reports-items/{reports_item_id}', [OrganizationalSetupController::class, 'updateReportsItem'])->whereNumber('reports_item_id')->middleware('can:organizational_setup,update');
+    Route::delete('/setup/reports-items/{reports_item_id}', [OrganizationalSetupController::class, 'destroyReportsItem'])->whereNumber('reports_item_id')->middleware('can:organizational_setup,delete');
+
+    // 02. Employee Information Setup (Reference Items)
+    Route::get('/setup/employee-information/categories', [SetupReferenceController::class, 'categories'])
+        ->defaults('setup_group', SetupReferenceItem::GROUP_EMPLOYEE_INFO)
+        ->middleware('can:employee_info_setup,view');
+    Route::get('/setup/employee-information/items', [SetupReferenceController::class, 'index'])
+        ->defaults('setup_group', SetupReferenceItem::GROUP_EMPLOYEE_INFO)
+        ->middleware('can:employee_info_setup,view');
+    Route::get('/setup/employee-information/items/{item_id}', [SetupReferenceController::class, 'find'])
+        ->whereNumber('item_id')
+        ->defaults('setup_group', SetupReferenceItem::GROUP_EMPLOYEE_INFO)
+        ->middleware('can:employee_info_setup,view');
+    Route::post('/setup/employee-information/items', [SetupReferenceController::class, 'store'])
+        ->defaults('setup_group', SetupReferenceItem::GROUP_EMPLOYEE_INFO)
+        ->middleware('can:employee_info_setup,create');
+    Route::put('/setup/employee-information/items/{item_id}', [SetupReferenceController::class, 'update'])
+        ->whereNumber('item_id')
+        ->defaults('setup_group', SetupReferenceItem::GROUP_EMPLOYEE_INFO)
+        ->middleware('can:employee_info_setup,update');
+    Route::delete('/setup/employee-information/items/{item_id}', [SetupReferenceController::class, 'destroy'])
+        ->whereNumber('item_id')
+        ->defaults('setup_group', SetupReferenceItem::GROUP_EMPLOYEE_INFO)
+        ->middleware('can:employee_info_setup,delete');
+
+    // 03. Employment Setup (Reference Items)
+    Route::get('/setup/employment/categories', [SetupReferenceController::class, 'categories'])
+        ->defaults('setup_group', SetupReferenceItem::GROUP_EMPLOYMENT)
+        ->middleware('can:employment_setup,view');
+    Route::get('/setup/employment/items', [SetupReferenceController::class, 'index'])
+        ->defaults('setup_group', SetupReferenceItem::GROUP_EMPLOYMENT)
+        ->middleware('can:employment_setup,view');
+    Route::get('/setup/employment/items/{item_id}', [SetupReferenceController::class, 'find'])
+        ->whereNumber('item_id')
+        ->defaults('setup_group', SetupReferenceItem::GROUP_EMPLOYMENT)
+        ->middleware('can:employment_setup,view');
+    Route::post('/setup/employment/items', [SetupReferenceController::class, 'store'])
+        ->defaults('setup_group', SetupReferenceItem::GROUP_EMPLOYMENT)
+        ->middleware('can:employment_setup,create');
+    Route::put('/setup/employment/items/{item_id}', [SetupReferenceController::class, 'update'])
+        ->whereNumber('item_id')
+        ->defaults('setup_group', SetupReferenceItem::GROUP_EMPLOYMENT)
+        ->middleware('can:employment_setup,update');
+    Route::delete('/setup/employment/items/{item_id}', [SetupReferenceController::class, 'destroy'])
+        ->whereNumber('item_id')
+        ->defaults('setup_group', SetupReferenceItem::GROUP_EMPLOYMENT)
+        ->middleware('can:employment_setup,delete');
+
+    // 04. Administrative Setup (Reference Items + Clearance Relational Setup)
+    Route::get('/setup/administrative/categories', [SetupReferenceController::class, 'categories'])
+        ->defaults('setup_group', SetupReferenceItem::GROUP_ADMINISTRATIVE)
+        ->middleware('can:administrative_setup,view');
+    Route::get('/setup/administrative/items', [SetupReferenceController::class, 'index'])
+        ->defaults('setup_group', SetupReferenceItem::GROUP_ADMINISTRATIVE)
+        ->middleware('can:administrative_setup,view');
+    Route::get('/setup/administrative/items/{item_id}', [SetupReferenceController::class, 'find'])
+        ->whereNumber('item_id')
+        ->defaults('setup_group', SetupReferenceItem::GROUP_ADMINISTRATIVE)
+        ->middleware('can:administrative_setup,view');
+    Route::post('/setup/administrative/items', [SetupReferenceController::class, 'store'])
+        ->defaults('setup_group', SetupReferenceItem::GROUP_ADMINISTRATIVE)
+        ->middleware('can:administrative_setup,create');
+    Route::put('/setup/administrative/items/{item_id}', [SetupReferenceController::class, 'update'])
+        ->whereNumber('item_id')
+        ->defaults('setup_group', SetupReferenceItem::GROUP_ADMINISTRATIVE)
+        ->middleware('can:administrative_setup,update');
+    Route::delete('/setup/administrative/items/{item_id}', [SetupReferenceController::class, 'destroy'])
+        ->whereNumber('item_id')
+        ->defaults('setup_group', SetupReferenceItem::GROUP_ADMINISTRATIVE)
+        ->middleware('can:administrative_setup,delete');
+
+    Route::get('/setup/clearance-types', [ClearanceSetupController::class, 'indexTypes'])->middleware('can:administrative_setup,view');
+    Route::get('/setup/clearance-types/{clearance_type_id}', [ClearanceSetupController::class, 'findType'])->whereNumber('clearance_type_id')->middleware('can:administrative_setup,view');
+    Route::post('/setup/clearance-types', [ClearanceSetupController::class, 'storeType'])->middleware('can:administrative_setup,create');
+    Route::put('/setup/clearance-types/{clearance_type_id}', [ClearanceSetupController::class, 'updateType'])->whereNumber('clearance_type_id')->middleware('can:administrative_setup,update');
+    Route::delete('/setup/clearance-types/{clearance_type_id}', [ClearanceSetupController::class, 'destroyType'])->whereNumber('clearance_type_id')->middleware('can:administrative_setup,delete');
+
+    Route::get('/setup/clearance-requirements', [ClearanceSetupController::class, 'indexRequirements'])->middleware('can:administrative_setup,view');
+    Route::get('/setup/clearance-requirements/{requirement_id}', [ClearanceSetupController::class, 'findRequirement'])->whereNumber('requirement_id')->middleware('can:administrative_setup,view');
+    Route::post('/setup/clearance-requirements', [ClearanceSetupController::class, 'storeRequirement'])->middleware('can:administrative_setup,create');
+    Route::put('/setup/clearance-requirements/{requirement_id}', [ClearanceSetupController::class, 'updateRequirement'])->whereNumber('requirement_id')->middleware('can:administrative_setup,update');
+    Route::delete('/setup/clearance-requirements/{requirement_id}', [ClearanceSetupController::class, 'destroyRequirement'])->whereNumber('requirement_id')->middleware('can:administrative_setup,delete');
+
+    Route::get('/setup/clearance-signatories', [ClearanceSetupController::class, 'indexSignatories'])->middleware('can:administrative_setup,view');
+    Route::get('/setup/clearance-signatories/{signatory_id}', [ClearanceSetupController::class, 'findSignatory'])->whereNumber('signatory_id')->middleware('can:administrative_setup,view');
+    Route::post('/setup/clearance-signatories', [ClearanceSetupController::class, 'storeSignatory'])->middleware('can:administrative_setup,create');
+    Route::put('/setup/clearance-signatories/{signatory_id}', [ClearanceSetupController::class, 'updateSignatory'])->whereNumber('signatory_id')->middleware('can:administrative_setup,update');
+    Route::delete('/setup/clearance-signatories/{signatory_id}', [ClearanceSetupController::class, 'destroySignatory'])->whereNumber('signatory_id')->middleware('can:administrative_setup,delete');
 });
