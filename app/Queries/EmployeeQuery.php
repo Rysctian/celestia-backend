@@ -2,6 +2,7 @@
 
 namespace App\Queries;
 
+use App\Models\Setup\SetupReferenceItem;
 use Illuminate\Support\Arr;
 
 trait EmployeeQuery
@@ -29,14 +30,50 @@ trait EmployeeQuery
                         ->orWhere('personal_email', 'like', "%{$search}%");
                 });
             })
-            ->when($request->type, fn ($query, $type) => $query->whereIn('type', Arr::wrap($type)))
-            ->when($request->gender, fn ($query, $gender) => $query->whereIn('gender', Arr::wrap($gender)))
-            ->when($request->civil_status, fn ($query, $civilStatus) => $query->whereIn('civil_status', Arr::wrap($civilStatus)))
+            ->when($request->type, fn ($query, $type) => $this->applySetupMatchedFilter($query, 'type', 'employment_type', $type))
+            ->when($request->gender, fn ($query, $gender) => $this->applySetupMatchedFilter($query, 'gender', 'gender', $gender))
+            ->when($request->civil_status, fn ($query, $civilStatus) => $this->applySetupMatchedFilter($query, 'civil_status', 'civil_status', $civilStatus))
             ->when($request->employee_id, fn ($query, $employeeId) => $query->where('employee_id', $employeeId))
             ->when($request->date_from, fn ($query, $dateFrom) => $query->whereDate('created_at', '>=', $dateFrom))
             ->when($request->date_to, fn ($query, $dateTo) => $query->whereDate('created_at', '<=', $dateTo))
             ->orderBy($sortBy, $sortOrder)
             ->limit($limit)
             ->offset($offset);
+    }
+
+    /**
+     * Matches case-insensitively and expands setup codes/names so both setup-coded
+     * values and legacy display strings filter consistently.
+     */
+    private function applySetupMatchedFilter($query, string $column, string $category, mixed $rawValue): void
+    {
+        $values = array_values(array_filter(array_map(
+            static fn ($item) => strtolower(trim((string) $item)),
+            Arr::wrap($rawValue),
+        )));
+
+        if ($values === []) {
+            return;
+        }
+
+        $matchedItems = SetupReferenceItem::query()
+            ->where('category', $category)
+            ->get(['code', 'name']);
+
+        $expanded = $values;
+        foreach ($matchedItems as $item) {
+            $code = strtolower($item->code);
+            $name = strtolower($item->name);
+            if (in_array($code, $values, true) || in_array($name, $values, true)) {
+                $expanded[] = $code;
+                $expanded[] = $name;
+                $expanded[] = str_replace('_', '-', $code);
+            }
+        }
+
+        $uniqueValues = array_values(array_unique($expanded));
+        $placeholders = implode(', ', array_fill(0, count($uniqueValues), '?'));
+
+        $query->whereRaw("LOWER({$column}) IN ({$placeholders})", $uniqueValues);
     }
 }

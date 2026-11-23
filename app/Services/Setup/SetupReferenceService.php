@@ -2,6 +2,12 @@
 
 namespace App\Services\Setup;
 
+use App\Models\Setup\ClearanceType;
+use App\Models\Setup\Department;
+use App\Models\Setup\Division;
+use App\Models\Setup\Office;
+use App\Models\Setup\Position;
+use App\Models\Setup\Section;
 use App\Models\Setup\SetupReferenceItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -171,6 +177,77 @@ class SetupReferenceService
             ->groupBy('category')
             ->map(fn ($groupItems) => $groupItems->values()->all())
             ->all();
+    }
+
+    /**
+     * Returns active organizational and clearance setup entities for shared filters & dropdowns.
+     */
+    public function getActiveEntityOptions(?array $entities = null): array
+    {
+        $supported = ['offices', 'departments', 'divisions', 'sections', 'positions', 'clearance_types'];
+        $requested = $entities !== null && $entities !== []
+            ? array_values(array_intersect($entities, $supported))
+            : $supported;
+
+        $result = [];
+
+        foreach ($requested as $entity) {
+            $result[$entity] = match ($entity) {
+                'offices' => Office::query()
+                    ->where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->orderBy('name')
+                    ->get(['id', 'code', 'name', 'type', 'parent_id'])
+                    ->values()
+                    ->all(),
+                'departments' => Department::query()
+                    ->where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->orderBy('name')
+                    ->get(['id', 'code', 'name', 'office_id'])
+                    ->values()
+                    ->all(),
+                'divisions' => Division::query()
+                    ->where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->orderBy('name')
+                    ->get(['id', 'code', 'name', 'department_id'])
+                    ->values()
+                    ->all(),
+                'sections' => Section::query()
+                    ->where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->orderBy('name')
+                    ->get(['id', 'code', 'name', 'division_id', 'department_id'])
+                    ->values()
+                    ->all(),
+                'positions' => Position::query()
+                    ->where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->orderBy('title')
+                    ->get(['id', 'code', 'title', 'department_id', 'division_id', 'section_id'])
+                    ->map(fn (Position $p) => [
+                        'id' => $p->id,
+                        'code' => $p->code,
+                        'name' => $p->title,
+                        'title' => $p->title,
+                        'department_id' => $p->department_id,
+                        'division_id' => $p->division_id,
+                        'section_id' => $p->section_id,
+                    ])
+                    ->values()
+                    ->all(),
+                'clearance_types' => ClearanceType::query()
+                    ->where('is_active', true)
+                    ->orderBy('sort_order')
+                    ->orderBy('name')
+                    ->get(['id', 'code', 'name', 'applies_to'])
+                    ->values()
+                    ->all(),
+            };
+        }
+
+        return $result;
     }
 
     private function validateParentRelationship(string $category, ?int $parentId, ?int $selfId = null): void

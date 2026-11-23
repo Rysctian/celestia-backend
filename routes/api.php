@@ -147,6 +147,7 @@ Route::middleware(['auth:sanctum'])->group(function () {
     // HRIS Setup Modules (01. Organizational, 02. Employee Info, 03. Employment, 04. Administrative)
     // -------------------------------------------------------------------------
     Route::get('/setup/options', [SetupReferenceController::class, 'options']);
+    Route::get('/setup/entity-options', [SetupReferenceController::class, 'entityOptions']);
 
     // 01. Organizational Setup
     Route::get('/setup/organizational/tree', [OrganizationalSetupController::class, 'tree'])->middleware('can:organizational_setup,view');

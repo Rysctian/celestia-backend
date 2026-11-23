@@ -90,4 +90,24 @@ class SetupReferenceController extends Controller
             'data' => $this->referenceService->getActiveOptions($categories, is_string($group) ? $group : null),
         ]);
     }
+
+    /**
+     * Read-only endpoint for authenticated users to load active organizational & clearance filter options.
+     */
+    public function entityOptions(Request $request)
+    {
+        $entitiesParam = $request->query('entities');
+        $entities = null;
+
+        if (is_string($entitiesParam) && trim($entitiesParam) !== '') {
+            $entities = array_values(array_filter(array_map('trim', explode(',', $entitiesParam))));
+        } elseif (is_array($entitiesParam)) {
+            $entities = array_values(array_filter(array_map('trim', $entitiesParam)));
+        }
+
+        return response()->json([
+            'message' => 'success',
+            'data' => $this->referenceService->getActiveEntityOptions($entities),
+        ]);
+    }
 }

@@ -144,4 +144,23 @@ class SetupReferenceTest extends TestCase
         $this->seed(SetupReferenceItemSeeder::class);
         $this->assertSame($firstCount, SetupReferenceItem::count());
     }
+
+    public function test_entity_options_endpoint_is_readable_by_employees_and_filters_inactive(): void
+    {
+        $this->seed(\Database\Seeders\Setup\OrganizationalSetupSeeder::class);
+        $this->seed(\Database\Seeders\Setup\ClearanceSetupSeeder::class);
+
+        \App\Models\Setup\Office::where('code', 'CCS')->update(['is_active' => false]);
+
+        $this->actingAsRole('employee');
+
+        $response = $this->getJson('/api/setup/entity-options?entities=offices,departments,clearance_types')
+            ->assertOk();
+
+        $officeCodes = array_column($response->json('data.offices'), 'code');
+        $this->assertContains('OADMIN', $officeCodes);
+        $this->assertNotContains('CCS', $officeCodes);
+        $this->assertNotEmpty($response->json('data.departments'));
+        $this->assertNotEmpty($response->json('data.clearance_types'));
+    }
 }
