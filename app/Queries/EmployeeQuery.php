@@ -9,7 +9,7 @@ trait EmployeeQuery
 {
     public function scopeFilterSearch($query, $request)
     {
-        $allowedSorts = ['id', 'employee_id', 'first_name', 'last_name', 'created_at'];
+        $allowedSorts = ['id', 'employee_id', 'first_name', 'last_name', 'date_hired', 'created_at'];
 
         $sortBy = in_array($request->sort_by, $allowedSorts)
             ? $request->sort_by
@@ -27,12 +27,19 @@ trait EmployeeQuery
                         ->orWhere('middle_name', 'like', "%{$search}%")
                         ->orWhere('last_name', 'like', "%{$search}%")
                         ->orWhere('employee_id', 'like', "%{$search}%")
-                        ->orWhere('personal_email', 'like', "%{$search}%");
+                        ->orWhere('personal_email', 'like', "%{$search}%")
+                        ->orWhere('work_email', 'like', "%{$search}%");
                 });
             })
             ->when($request->type, fn ($query, $type) => $this->applySetupMatchedFilter($query, 'type', 'employment_type', $type))
             ->when($request->gender, fn ($query, $gender) => $this->applySetupMatchedFilter($query, 'gender', 'gender', $gender))
             ->when($request->civil_status, fn ($query, $civilStatus) => $this->applySetupMatchedFilter($query, 'civil_status', 'civil_status', $civilStatus))
+            ->when($request->employment_status, fn ($query, $status) => $this->applySetupMatchedFilter($query, 'employment_status', 'employment_status', $status))
+            ->when($request->work_arrangement, fn ($query, $arr) => $this->applySetupMatchedFilter($query, 'work_arrangement', 'work_arrangement', $arr))
+            ->when($request->employee_category, fn ($query, $cat) => $this->applySetupMatchedFilter($query, 'employee_category', 'employee_category', $cat))
+            ->when($request->filled('office_id'), fn ($query) => $query->where('office_id', $request->integer('office_id')))
+            ->when($request->filled('department_id'), fn ($query) => $query->where('department_id', $request->integer('department_id')))
+            ->when($request->filled('position_id'), fn ($query) => $query->where('position_id', $request->integer('position_id')))
             ->when($request->employee_id, fn ($query, $employeeId) => $query->where('employee_id', $employeeId))
             ->when($request->date_from, fn ($query, $dateFrom) => $query->whereDate('created_at', '>=', $dateFrom))
             ->when($request->date_to, fn ($query, $dateTo) => $query->whereDate('created_at', '<=', $dateTo))

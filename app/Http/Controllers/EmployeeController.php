@@ -40,10 +40,9 @@ class EmployeeController extends Controller
         $updated_employee = $this->employeeService->updateUserAndEmployee($request->validated(), $employee_id);
 
         if (! $updated_employee) {
-            return response()->json(['message' => 'Employee Update Failed', 401]);
+            return response()->json(['message' => 'Employee not found.'], 404);
         }
 
-        return response()->json(['message' => 'Employee updated successfully.', 'data' => $updated_employee], 201);
-
+        return response()->json(['message' => 'Employee updated successfully.', 'data' => $updated_employee]);
     }
 }
