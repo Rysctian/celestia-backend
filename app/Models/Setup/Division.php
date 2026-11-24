@@ -54,4 +54,9 @@ class Division extends Model
     {
         return $this->hasMany(ReportsItem::class, 'division_id');
     }
+
+    public function employees()
+    {
+        return $this->hasMany(Employee::class, 'division_id');
+    }
 }

@@ -22,12 +22,13 @@ class ClearanceSetupService
         return ClearanceType::query()
             ->withCount(['requirements', 'signatories'])
             ->filterSearch($request)
-            ->get();
+            ->get()
+            ->map(fn (ClearanceType $type) => $this->attachTypeUsage($type));
     }
 
     public function findType(int $id): ?ClearanceType
     {
-        return ClearanceType::query()
+        $type = ClearanceType::query()
             ->with([
                 'requirements.office:id,code,name',
                 'requirements.department:id,code,name',
@@ -39,6 +40,8 @@ class ClearanceSetupService
             ])
             ->withCount(['requirements', 'signatories'])
             ->find($id);
+
+        return $type ? $this->attachTypeUsage($type) : null;
     }
 
     public function createType(array $data): ClearanceType
@@ -92,12 +95,13 @@ class ClearanceSetupService
             ])
             ->withCount(['signatories'])
             ->filterSearch($request)
-            ->get();
+            ->get()
+            ->map(fn (ClearanceRequirement $requirement) => $this->attachRequirementUsage($requirement));
     }
 
     public function findRequirement(int $id): ?ClearanceRequirement
     {
-        return ClearanceRequirement::query()
+        $requirement = ClearanceRequirement::query()
             ->with([
                 'clearanceType:id,code,name',
                 'office:id,code,name',
@@ -107,6 +111,8 @@ class ClearanceSetupService
             ])
             ->withCount(['signatories'])
             ->find($id);
+
+        return $requirement ? $this->attachRequirementUsage($requirement) : null;
     }
 
     public function createRequirement(array $data): ClearanceRequirement
@@ -264,5 +270,41 @@ class ClearanceSetupService
                 'clearance_requirement_id' => 'The selected clearance requirement does not belong to the selected clearance type.',
             ]);
         }
+    }
+
+    private function attachTypeUsage(ClearanceType $type): ClearanceType
+    {
+        return $this->applyUsageAttributes($type, [
+            'requirement' => (int) ($type->requirements_count ?? 0),
+            'signatory' => (int) ($type->signatories_count ?? 0),
+        ]);
+    }
+
+    private function attachRequirementUsage(ClearanceRequirement $requirement): ClearanceRequirement
+    {
+        return $this->applyUsageAttributes($requirement, [
+            'signatory' => (int) ($requirement->signatories_count ?? 0),
+        ]);
+    }
+
+    private function applyUsageAttributes($model, array $counts)
+    {
+        $total = 0;
+        $parts = [];
+
+        foreach ($counts as $singular => $count) {
+            if ($count <= 0) {
+                continue;
+            }
+            $total += $count;
+            $label = $count === 1 ? $singular : (str_ends_with($singular, 'y') ? substr($singular, 0, -1).'ies' : $singular.'s');
+            $parts[] = "{$count} {$label}";
+        }
+
+        $model->setAttribute('usage_count', $total);
+        $model->setAttribute('is_in_use', $total > 0);
+        $model->setAttribute('usage_reason', $total > 0 ? 'In use by '.implode(', ', $parts) : null);
+
+        return $model;
     }
 }

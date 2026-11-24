@@ -59,4 +59,19 @@ class Department extends Model
     {
         return $this->hasMany(ReportsItem::class, 'department_id');
     }
+
+    public function employees()
+    {
+        return $this->hasMany(Employee::class, 'department_id');
+    }
+
+    public function clearanceRequirements()
+    {
+        return $this->hasMany(ClearanceRequirement::class, 'department_id');
+    }
+
+    public function clearanceSignatories()
+    {
+        return $this->hasMany(ClearanceSignatory::class, 'department_id');
+    }
 }

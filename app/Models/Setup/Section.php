@@ -56,4 +56,9 @@ class Section extends Model
     {
         return $this->hasMany(ReportsItem::class, 'section_id');
     }
+
+    public function employees()
+    {
+        return $this->hasMany(Employee::class, 'section_id');
+    }
 }

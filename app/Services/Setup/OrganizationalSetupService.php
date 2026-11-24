@@ -94,17 +94,20 @@ class OrganizationalSetupService
     {
         return Office::query()
             ->with(['parent:id,code,name', 'headEmployee:'.self::EMPLOYEE_COLUMNS])
-            ->withCount(['children', 'departments'])
+            ->withCount(['children', 'departments', 'reportsItems', 'employees', 'clearanceRequirements', 'clearanceSignatories'])
             ->filterSearch($request)
-            ->get();
+            ->get()
+            ->map(fn (Office $office) => $this->attachOfficeUsage($office));
     }
 
     public function findOffice(int $id): ?Office
     {
-        return Office::query()
+        $office = Office::query()
             ->with(['parent:id,code,name', 'headEmployee:'.self::EMPLOYEE_COLUMNS, 'departments:id,code,name,office_id'])
-            ->withCount(['children', 'departments'])
+            ->withCount(['children', 'departments', 'reportsItems', 'employees', 'clearanceRequirements', 'clearanceSignatories'])
             ->find($id);
+
+        return $office ? $this->attachOfficeUsage($office) : null;
     }
 
     public function createOffice(array $data): Office
@@ -159,6 +162,18 @@ class OrganizationalSetupService
                 ]);
             }
 
+            if ($office->employees()->exists()) {
+                throw ValidationException::withMessages([
+                    'office' => 'Cannot delete office because it is assigned to employees.',
+                ]);
+            }
+
+            if ($office->clearanceRequirements()->exists() || $office->clearanceSignatories()->exists()) {
+                throw ValidationException::withMessages([
+                    'office' => 'Cannot delete office because it is referenced in clearance setup.',
+                ]);
+            }
+
             $office->delete();
         });
     }
@@ -171,17 +186,20 @@ class OrganizationalSetupService
     {
         return Department::query()
             ->with(['office:id,code,name,type', 'headEmployee:'.self::EMPLOYEE_COLUMNS])
-            ->withCount(['divisions', 'sections', 'positions'])
+            ->withCount(['divisions', 'sections', 'positions', 'reportsItems', 'employees', 'clearanceRequirements', 'clearanceSignatories'])
             ->filterSearch($request)
-            ->get();
+            ->get()
+            ->map(fn (Department $department) => $this->attachDepartmentUsage($department));
     }
 
     public function findDepartment(int $id): ?Department
     {
-        return Department::query()
+        $department = Department::query()
             ->with(['office:id,code,name,type', 'headEmployee:'.self::EMPLOYEE_COLUMNS])
-            ->withCount(['divisions', 'sections', 'positions'])
+            ->withCount(['divisions', 'sections', 'positions', 'reportsItems', 'employees', 'clearanceRequirements', 'clearanceSignatories'])
             ->find($id);
+
+        return $department ? $this->attachDepartmentUsage($department) : null;
     }
 
     public function createDepartment(array $data): Department
@@ -224,6 +242,18 @@ class OrganizationalSetupService
                 ]);
             }
 
+            if ($department->employees()->exists()) {
+                throw ValidationException::withMessages([
+                    'department' => 'Cannot delete department because it is assigned to employees.',
+                ]);
+            }
+
+            if ($department->clearanceRequirements()->exists() || $department->clearanceSignatories()->exists()) {
+                throw ValidationException::withMessages([
+                    'department' => 'Cannot delete department because it is referenced in clearance setup.',
+                ]);
+            }
+
             $department->delete();
         });
     }
@@ -236,17 +266,20 @@ class OrganizationalSetupService
     {
         return Division::query()
             ->with(['department:id,code,name,office_id', 'department.office:id,code,name', 'headEmployee:'.self::EMPLOYEE_COLUMNS])
-            ->withCount(['sections', 'positions'])
+            ->withCount(['sections', 'positions', 'reportsItems', 'employees'])
             ->filterSearch($request)
-            ->get();
+            ->get()
+            ->map(fn (Division $division) => $this->attachDivisionUsage($division));
     }
 
     public function findDivision(int $id): ?Division
     {
-        return Division::query()
+        $division = Division::query()
             ->with(['department:id,code,name,office_id', 'department.office:id,code,name', 'headEmployee:'.self::EMPLOYEE_COLUMNS])
-            ->withCount(['sections', 'positions'])
+            ->withCount(['sections', 'positions', 'reportsItems', 'employees'])
             ->find($id);
+
+        return $division ? $this->attachDivisionUsage($division) : null;
     }
 
     public function createDivision(array $data): Division
@@ -277,9 +310,9 @@ class OrganizationalSetupService
         DB::transaction(function () use ($id) {
             $division = Division::lockForUpdate()->findOrFail($id);
 
-            if ($division->sections()->exists() || $division->positions()->exists() || $division->reportsItems()->exists()) {
+            if ($division->sections()->exists() || $division->positions()->exists() || $division->reportsItems()->exists() || $division->employees()->exists()) {
                 throw ValidationException::withMessages([
-                    'division' => 'Cannot delete division while sections, positions, or reports items are assigned to it.',
+                    'division' => 'Cannot delete division while sections, positions, reports items, or employees are assigned to it.',
                 ]);
             }
 
@@ -299,21 +332,24 @@ class OrganizationalSetupService
                 'department:id,code,name',
                 'headEmployee:'.self::EMPLOYEE_COLUMNS,
             ])
-            ->withCount(['positions'])
+            ->withCount(['positions', 'reportsItems', 'employees'])
             ->filterSearch($request)
-            ->get();
+            ->get()
+            ->map(fn (Section $section) => $this->attachSectionUsage($section));
     }
 
     public function findSection(int $id): ?Section
     {
-        return Section::query()
+        $section = Section::query()
             ->with([
                 'division:id,code,name,department_id',
                 'department:id,code,name',
                 'headEmployee:'.self::EMPLOYEE_COLUMNS,
             ])
-            ->withCount(['positions'])
+            ->withCount(['positions', 'reportsItems', 'employees'])
             ->find($id);
+
+        return $section ? $this->attachSectionUsage($section) : null;
     }
 
     public function createSection(array $data): Section
@@ -357,9 +393,9 @@ class OrganizationalSetupService
         DB::transaction(function () use ($id) {
             $section = Section::lockForUpdate()->findOrFail($id);
 
-            if ($section->positions()->exists() || $section->reportsItems()->exists()) {
+            if ($section->positions()->exists() || $section->reportsItems()->exists() || $section->employees()->exists()) {
                 throw ValidationException::withMessages([
-                    'section' => 'Cannot delete section while positions or reports items are assigned to it.',
+                    'section' => 'Cannot delete section while positions, reports items, or employees are assigned to it.',
                 ]);
             }
 
@@ -380,22 +416,25 @@ class OrganizationalSetupService
                 'section:id,code,name',
                 'reportsToPosition:id,code,title',
             ])
-            ->withCount(['subordinatePositions'])
+            ->withCount(['subordinatePositions', 'reportsItems', 'reportingToItems', 'employees', 'clearanceSignatories'])
             ->filterSearch($request)
-            ->get();
+            ->get()
+            ->map(fn (Position $position) => $this->attachPositionUsage($position));
     }
 
     public function findPosition(int $id): ?Position
     {
-        return Position::query()
+        $position = Position::query()
             ->with([
                 'department:id,code,name',
                 'division:id,code,name',
                 'section:id,code,name',
                 'reportsToPosition:id,code,title',
             ])
-            ->withCount(['subordinatePositions'])
+            ->withCount(['subordinatePositions', 'reportsItems', 'reportingToItems', 'employees', 'clearanceSignatories'])
             ->find($id);
+
+        return $position ? $this->attachPositionUsage($position) : null;
     }
 
     public function createPosition(array $data): Position
@@ -450,6 +489,18 @@ class OrganizationalSetupService
             if ($position->reportsItems()->exists() || ReportsItem::where('reports_to_position_id', $position->id)->exists()) {
                 throw ValidationException::withMessages([
                     'position' => 'Cannot delete position because it is referenced by reports items.',
+                ]);
+            }
+
+            if ($position->employees()->exists()) {
+                throw ValidationException::withMessages([
+                    'position' => 'Cannot delete position because it is assigned to employees.',
+                ]);
+            }
+
+            if ($position->clearanceSignatories()->exists()) {
+                throw ValidationException::withMessages([
+                    'position' => 'Cannot delete position because it is referenced by clearance signatories.',
                 ]);
             }
 
@@ -616,5 +667,87 @@ class OrganizationalSetupService
                 'reports_to_position_id' => 'A position cannot report to itself in a reports item.',
             ]);
         }
+    }
+
+    private function attachOfficeUsage(Office $office): Office
+    {
+        return $this->applyUsageAttributes($office, [
+            'sub-office' => (int) ($office->children_count ?? 0),
+            'department' => (int) ($office->departments_count ?? 0),
+            'employee' => (int) ($office->employees_count ?? 0),
+            'reports item' => (int) ($office->reports_items_count ?? 0),
+            'clearance requirement' => (int) ($office->clearance_requirements_count ?? 0),
+            'clearance signatory' => (int) ($office->clearance_signatories_count ?? 0),
+        ]);
+    }
+
+    private function attachDepartmentUsage(Department $department): Department
+    {
+        return $this->applyUsageAttributes($department, [
+            'division' => (int) ($department->divisions_count ?? 0),
+            'section' => (int) ($department->sections_count ?? 0),
+            'position' => (int) ($department->positions_count ?? 0),
+            'employee' => (int) ($department->employees_count ?? 0),
+            'reports item' => (int) ($department->reports_items_count ?? 0),
+            'clearance requirement' => (int) ($department->clearance_requirements_count ?? 0),
+            'clearance signatory' => (int) ($department->clearance_signatories_count ?? 0),
+        ]);
+    }
+
+    private function attachDivisionUsage(Division $division): Division
+    {
+        return $this->applyUsageAttributes($division, [
+            'section' => (int) ($division->sections_count ?? 0),
+            'position' => (int) ($division->positions_count ?? 0),
+            'employee' => (int) ($division->employees_count ?? 0),
+            'reports item' => (int) ($division->reports_items_count ?? 0),
+        ]);
+    }
+
+    private function attachSectionUsage(Section $section): Section
+    {
+        return $this->applyUsageAttributes($section, [
+            'position' => (int) ($section->positions_count ?? 0),
+            'employee' => (int) ($section->employees_count ?? 0),
+            'reports item' => (int) ($section->reports_items_count ?? 0),
+        ]);
+    }
+
+    private function attachPositionUsage(Position $position): Position
+    {
+        return $this->applyUsageAttributes($position, [
+            'subordinate position' => (int) ($position->subordinate_positions_count ?? 0),
+            'employee' => (int) ($position->employees_count ?? 0),
+            'reports item' => (int) ($position->reports_items_count ?? 0) + (int) ($position->reporting_to_items_count ?? 0),
+            'clearance signatory' => (int) ($position->clearance_signatories_count ?? 0),
+        ]);
+    }
+
+    /**
+     * @template TModel of \Illuminate\Database\Eloquent\Model
+     *
+     * @param  TModel  $model
+     * @param  array<string, int>  $counts
+     * @return TModel
+     */
+    private function applyUsageAttributes($model, array $counts)
+    {
+        $total = 0;
+        $parts = [];
+
+        foreach ($counts as $singular => $count) {
+            if ($count <= 0) {
+                continue;
+            }
+            $total += $count;
+            $label = $count === 1 ? $singular : (str_ends_with($singular, 'y') ? substr($singular, 0, -1).'ies' : $singular.'s');
+            $parts[] = "{$count} {$label}";
+        }
+
+        $model->setAttribute('usage_count', $total);
+        $model->setAttribute('is_in_use', $total > 0);
+        $model->setAttribute('usage_reason', $total > 0 ? 'In use by '.implode(', ', $parts) : null);
+
+        return $model;
     }
 }

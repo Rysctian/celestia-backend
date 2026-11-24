@@ -57,4 +57,19 @@ class Office extends Model
     {
         return $this->hasMany(ReportsItem::class, 'office_id');
     }
+
+    public function employees()
+    {
+        return $this->hasMany(Employee::class, 'office_id');
+    }
+
+    public function clearanceRequirements()
+    {
+        return $this->hasMany(ClearanceRequirement::class, 'office_id');
+    }
+
+    public function clearanceSignatories()
+    {
+        return $this->hasMany(ClearanceSignatory::class, 'office_id');
+    }
 }

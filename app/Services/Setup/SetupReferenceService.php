@@ -2,6 +2,7 @@
 
 namespace App\Services\Setup;
 
+use App\Models\Employee;
 use App\Models\Setup\ClearanceType;
 use App\Models\Setup\Department;
 use App\Models\Setup\Division;
@@ -10,11 +11,38 @@ use App\Models\Setup\Position;
 use App\Models\Setup\Section;
 use App\Models\Setup\SetupReferenceItem;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class SetupReferenceService
 {
+    /**
+     * Maps scalar setup reference categories to the corresponding column on `employees`.
+     *
+     * @var array<string, string>
+     */
+    private const EMPLOYEE_SCALAR_CATEGORY_COLUMN = [
+        'gender' => 'gender',
+        'civil_status' => 'civil_status',
+        'blood_type' => 'blood_type',
+        'country' => 'country',
+        'nationality' => 'nationality',
+        'citizenship' => 'citizenship',
+        'religion' => 'religion',
+        'educational_attainment' => 'educational_attainment',
+        'degree_course' => 'degree_course',
+        'relationship_type' => 'emergency_contact_relationship',
+        'disability_type' => 'disability_type',
+        'employment_type' => 'type',
+        'employment_status' => 'employment_status',
+        'employee_category' => 'employee_category',
+        'appointment_type' => 'appointment_type',
+        'employment_classification' => 'employment_classification',
+        'work_arrangement' => 'work_arrangement',
+        'separation_type' => 'separation_type',
+        'separation_reason' => 'separation_reason',
+    ];
     public function listCategories(string $group): array
     {
         $catalog = SetupReferenceItem::categoriesForGroup($group);
@@ -45,21 +73,29 @@ class SetupReferenceService
 
     public function search(string $group, Request $request)
     {
-        return SetupReferenceItem::query()
+        $items = SetupReferenceItem::query()
             ->where('group', $group)
             ->with(['parent:id,category,code,name'])
             ->withCount(['children'])
             ->filterSearch($request)
             ->get();
+
+        return $this->attachReferenceUsageCollection($items);
     }
 
     public function findById(string $group, int $id): ?SetupReferenceItem
     {
-        return SetupReferenceItem::query()
+        $item = SetupReferenceItem::query()
             ->where('group', $group)
             ->with(['parent:id,category,code,name'])
             ->withCount(['children'])
             ->find($id);
+
+        if (! $item) {
+            return null;
+        }
+
+        return $this->attachReferenceUsageCollection(collect([$item]))->first();
     }
 
     public function createItem(string $group, array $data): SetupReferenceItem
@@ -139,11 +175,17 @@ class SetupReferenceService
     public function deleteItem(string $group, int $id): void
     {
         DB::transaction(function () use ($group, $id) {
-            $item = SetupReferenceItem::where('group', $group)->lockForUpdate()->findOrFail($id);
+            $item = SetupReferenceItem::where('group', $group)
+                ->withCount(['children'])
+                ->lockForUpdate()
+                ->findOrFail($id);
 
-            if ($item->children()->exists()) {
+            $this->attachReferenceUsageCollection(collect([$item]));
+
+            if ($item->getAttribute('is_in_use')) {
+                $reason = lcfirst((string) ($item->getAttribute('usage_reason') ?: 'in use in the system'));
                 throw ValidationException::withMessages([
-                    'item' => 'Cannot delete this setup item because child items depend on it.',
+                    'item' => "Cannot delete this setup item because it is {$reason}.",
                 ]);
             }
 
@@ -275,5 +317,90 @@ class SetupReferenceService
                 'parent_id' => "Parent item must belong to the {$expectedParentCategory} category.",
             ]);
         }
+    }
+
+    /**
+     * Attaches `usage_count`, `is_in_use`, and `usage_reason` to a collection of SetupReferenceItems
+     * using batched queries per category (zero N+1 queries).
+     *
+     * @param  Collection<int, SetupReferenceItem>  $items
+     * @return Collection<int, SetupReferenceItem>
+     */
+    private function attachReferenceUsageCollection(Collection $items): Collection
+    {
+        if ($items->isEmpty()) {
+            return $items;
+        }
+
+        $categories = $items->pluck('category')->unique()->values();
+        $usageMaps = [];
+
+        foreach ($categories as $category) {
+            if (isset(self::EMPLOYEE_SCALAR_CATEGORY_COLUMN[$category])) {
+                $column = self::EMPLOYEE_SCALAR_CATEGORY_COLUMN[$category];
+                $usageMaps[$category] = Employee::query()
+                    ->whereNotNull($column)
+                    ->where($column, '!=', '')
+                    ->selectRaw("LOWER(TRIM({$column})) as normalized_value, COUNT(*) as aggregate_count")
+                    ->groupByRaw("LOWER(TRIM({$column}))")
+                    ->pluck('aggregate_count', 'normalized_value')
+                    ->map(fn ($count) => (int) $count)
+                    ->all();
+            } elseif ($category === 'language') {
+                $languageCounts = [];
+                $rows = Employee::query()->whereNotNull('languages')->pluck('languages');
+
+                foreach ($rows as $languages) {
+                    if (! is_array($languages)) {
+                        continue;
+                    }
+                    $seenInRow = [];
+                    foreach ($languages as $lang) {
+                        if (! is_string($lang)) {
+                            continue;
+                        }
+                        $normalized = strtolower(trim($lang));
+                        if ($normalized === '' || isset($seenInRow[$normalized])) {
+                            continue;
+                        }
+                        $seenInRow[$normalized] = true;
+                        $languageCounts[$normalized] = ($languageCounts[$normalized] ?? 0) + 1;
+                    }
+                }
+
+                $usageMaps[$category] = $languageCounts;
+            }
+        }
+
+        return $items->map(function (SetupReferenceItem $item) use ($usageMaps) {
+            $childrenCount = (int) ($item->children_count ?? 0);
+            $employeeCount = 0;
+
+            if (isset($usageMaps[$item->category])) {
+                $map = $usageMaps[$item->category];
+                $codeKey = strtolower(trim((string) $item->code));
+                $nameKey = strtolower(trim((string) $item->name));
+
+                $employeeCount += $map[$codeKey] ?? 0;
+                if ($nameKey !== '' && $nameKey !== $codeKey) {
+                    $employeeCount += $map[$nameKey] ?? 0;
+                }
+            }
+
+            $total = $childrenCount + $employeeCount;
+            $parts = [];
+            if ($childrenCount > 0) {
+                $parts[] = $childrenCount === 1 ? '1 child item' : "{$childrenCount} child items";
+            }
+            if ($employeeCount > 0) {
+                $parts[] = $employeeCount === 1 ? '1 employee' : "{$employeeCount} employees";
+            }
+
+            $item->setAttribute('usage_count', $total);
+            $item->setAttribute('is_in_use', $total > 0);
+            $item->setAttribute('usage_reason', $total > 0 ? 'In use by '.implode(', ', $parts) : null);
+
+            return $item;
+        });
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models\Setup;
 
+use App\Models\Employee;
 use App\Queries\Setup\PositionQuery;
 use Illuminate\Database\Eloquent\Model;
 
@@ -63,5 +64,20 @@ class Position extends Model
     public function reportsItems()
     {
         return $this->hasMany(ReportsItem::class, 'position_id');
+    }
+
+    public function reportingToItems()
+    {
+        return $this->hasMany(ReportsItem::class, 'reports_to_position_id');
+    }
+
+    public function employees()
+    {
+        return $this->hasMany(Employee::class, 'position_id');
+    }
+
+    public function clearanceSignatories()
+    {
+        return $this->hasMany(ClearanceSignatory::class, 'position_id');
     }
 }
